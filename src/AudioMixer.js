@@ -1,10 +1,14 @@
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 'react';
 //  import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import Button from '@mui/material/Button';
+
 import toWav from 'audiobuffer-to-wav';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { LoudnessMeter } from '@domchristie/needles';
+import { useLanguage } from './useLanguage';
+
 
 const translateVolume = (volumeInDB) => {
     // Convert db into gain
@@ -64,6 +68,7 @@ const MixerContainer = styled.div`
     width: 100%;
     height: 100%;
     flex-wrap: wrap;
+    text-align: center;
 `;
 
 const MixerTrack = styled.div`
@@ -121,7 +126,7 @@ const MixerTrackName = styled.div`
     max-width: 100%;
     overflow: hidden;
     width: 200px;
-    height: 2.5em;
+    height: 3.5em;
     overflow: hidden;
 `;
 
@@ -344,6 +349,8 @@ const exportAudioBuffer = async (audioBuffer, fileName, volumeInDB, returnValue)
 
 // Only one mixer at a time, and it connects to the audio context via props. The volume is based on dB, and the slider is based on a linear scale. Apply volume to the audio as a step before sending it to the audio context.
 const AudioMixer = ({ files, audioContext }) => {
+    const { __ } = useLanguage();
+
     // Tracks contains a gain node and an audio buffer source node
     // So to set the +-5 dB volume, we need to set the gain node's gain value on value change
     const [tracks, setTracks] = useState(null);
@@ -455,7 +462,7 @@ const AudioMixer = ({ files, audioContext }) => {
             <div>
                 {tracks && tracks.length ? (
                     <>
-                        <button
+                        <Button
                             onClick={() => {
                                 // Export all
                                 setHighPerfMode(true);
@@ -478,16 +485,16 @@ const AudioMixer = ({ files, audioContext }) => {
                                 })();
                             }}
                         >
-                            Export all
-                        </button>
-                        <button
+                            {__('Export all')}
+                        </Button>
+                        <Button
                             onClick={() => {
                                 // highPerfMode
                                 setHighPerfMode(!highPerfMode);
                             }}
                         >
-                            {highPerfMode ? 'Disable' : 'Enable'} high performance mode
-                        </button>
+                            {__(highPerfMode ? 'Enable LUFS meters' : 'Disable LUFS meters')}
+                        </Button>
                     </>
                 ) : null}
             </div>
@@ -497,12 +504,16 @@ const AudioMixer = ({ files, audioContext }) => {
                         return (
                             <PlaceholderMixerTrack>
                                 <MixerTrackName>
-                                    <span>Loading...</span>
+                                    <span>
+                                        {__('Loading...')}
+                                    </span>
                                 </MixerTrackName>
                                 <MixerTrackVolume>
                                     <MixerTrackVolumeSlider />
                                 </MixerTrackVolume>
-                                <button>Export</button>
+                                <button>
+                                    {__('Export')}
+                                </button>
                                 <audio controls />
                             </PlaceholderMixerTrack>
                         );
@@ -548,14 +559,14 @@ const AudioMixer = ({ files, audioContext }) => {
                                     )}
                                 </MixerTrackVolumeSlider>
 
-                                <button
+                                <Button
                                     onClick={() => {
                                         // Export the audio buffer
                                         exportAudioBuffer(track.audioBuffer, track.name, track.gainNode.gain.value);
                                     }}
                                 >
-                                    Export
-                                </button>
+                                    {__('Export')}
+                                </Button>
 
                                 <DomInjector
                                     key={index}

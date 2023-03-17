@@ -1,14 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import Flag from "react-flags";
 import AudioMixer from './AudioMixer';
 import { cacheFiles } from './FileCache';
+import Button from '@mui/material/Button';
+import { useLanguage } from './useLanguage';
+
+const ClearButton = styled.button`
+    background-color: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 0;
+`;
 
 let FileInputArea = ({ className, onChange, ...props }) => {
+    const { __ } = useLanguage();
     return (
         <div className={className}  {...props}>
             <input type="file" multiple onChange={onChange} />
             <div className="message">
-                <p>Click here to select audio files</p>
+                <p>
+                    {__('Click here to select audio files.')}
+                </p>
             </div>
         </div>
     );
@@ -53,6 +68,7 @@ FileInputArea = styled(FileInputArea)`
 
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
+    const { __, setLanguage, currentLanguage } = useLanguage();
     const [files, setFiles] = useState([]);
 
     const [audioContext, setAudioContext] = useState(null);
@@ -138,7 +154,7 @@ const AudioFilePicker = () => {
     }, []);
 
     return (
-        <div>
+        <div style={{ textAlign: 'center' }}>
             <FileInputArea
                 onChange={handleFileChange}
                 style={{
@@ -146,18 +162,57 @@ const AudioFilePicker = () => {
                 }}
             />
 
+
+            {['sv', 'en', 'no', 'fi', 'da', 'de'].map((lang) => {
+                const flagMapping = {
+                    'sv': 'se',
+                    'en': 'gb',
+                    'no': 'no',
+                    'fi': 'fi',
+                    'da': 'dk',
+                    'de': 'de'
+                };
+                return (
+                    <ClearButton
+                        onClick={() => {
+                            setLanguage(lang);
+                            // Send window event called "infoMessageReset"
+                            window.dispatchEvent(new Event('infoMessageReset'));
+                        }}
+                        style={{
+                            margin: '0 0.5em',
+                            opacity: lang === currentLanguage ? 1 : 0.5,
+                            transition: 'opacity 0.5s',
+                            'position': 'relative', zIndex: 10000000000
+                        }}
+                    >
+                        <Flag basePath="/audio" country={
+                            flagMapping[lang]
+                        } format="png" pngSize={24} shiny={true} />
+                    </ClearButton>
+                );
+            })}
+
+            <br />
+
             {files.length > 0 && (
-                <button
-                    onClick={() => {
-                        setFiles([]);
-                        localStorage.removeItem('files');
-                    }}
-                >
-                    Clear workspace
-                </button>
+                <div style={{ marginTop: '40px' }}>
+                    <Button
+                        onClick={() => {
+                            setFiles([]);
+                            setAudioContext(null);
+                            localStorage.removeItem('files');
+                        }}
+                        color="error"
+                    >
+                        {__('Clear workspace')}
+                    </Button>
+                </div>
             )}
 
-            <AudioMixer files={files} audioContext={audioContext} />
+            {files && files.length > 0 && (
+                <AudioMixer files={files} audioContext={audioContext} />
+            )}
         </div>
     );
 }

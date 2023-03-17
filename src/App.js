@@ -1,6 +1,82 @@
-import React, { useEffect } from 'react';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { createGlobalStyle } from 'styled-components';
+import styled from 'styled-components';
+import CssBaseline from '@mui/material/CssBaseline';
+import Alert from '@mui/material/Alert';
 import AudioFilePicker from './AudioFilePicker';
+import { LanguageProvider, useLanguage } from './useLanguage';
+
+import translations from './translations.json';
+
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
+const CssGlobals = createGlobalStyle`
+  body {
+    background-color: #0a1929 !important;
+    color: #fff;
+  }
+`;
+
+const DevMenu = styled.div`
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  opacity: 0;
+  transition: opacity 0.5s; 
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const AlertStyled = styled(Alert)`
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 100000;
+  max-width: 500px;
+  white-space: pre-wrap;
+`;
+
+const InfoMessage = ({ children }) => {
+  const { __ } = useLanguage();
+  const [display, setDisplay] = useState(() => {
+    const localStorageKey = 'infoMessage';
+    const localStorageValue = localStorage.getItem(localStorageKey);
+    if (localStorageValue === null) {
+      localStorage.setItem(localStorageKey, 'true');
+      return true;
+    }
+    return localStorageValue === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('infoMessage', display);
+  }, [display]);
+
+  useEffect(() => {
+    // Listen for window event called "infoMessageReset"
+    // window.dispatchEvent(new Event('infoMessageReset'));
+    window.addEventListener('infoMessageReset', () => {
+      setDisplay(true);
+    });
+  }, []);
+
+  if (!display) {
+    return null;
+  }
+
+  return (
+    <AlertStyled severity="info" onClose={() => setDisplay(false)}>
+      {__('infoMessage')}
+    </AlertStyled>
+  );
+};
 
 // Any time localStorage is updated, this component will re-render with the new value in the input
 // And when the input is updated, the localStorage is updated
@@ -54,12 +130,7 @@ const LocalStorageText = () => {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      left: 0,
-      bottom: 0,
-      opacity: 0.05
-    }}>
+    <DevMenu>
       <textarea
         style={{ display: display ? 'block' : 'none' }} cols="100" rows="20" value={text} onChange={handleChange}
       />
@@ -69,16 +140,26 @@ const LocalStorageText = () => {
       >
         {display ? 'Hide' : 'Show'} localStorage
       </button>
-    </div>
+    </DevMenu>
   );
 };
 
 function App() {
   return (
-    <div className="App">
-      <AudioFilePicker />
-      <LocalStorageText />
-    </div>
+    <React.StrictMode>
+      <LanguageProvider translations={translations}>
+        <ThemeProvider theme={darkTheme}>
+          <CssBaseline />
+          <CssGlobals />
+          <div className="App">
+            <AudioFilePicker />
+            <LocalStorageText />
+          </div>
+
+          <InfoMessage />
+        </ThemeProvider>
+      </LanguageProvider>
+    </React.StrictMode>
   );
 }
 

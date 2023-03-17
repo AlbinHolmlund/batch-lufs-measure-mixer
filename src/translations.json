@@ -1,0 +1,66 @@
+{
+    "infoMessage": {
+        "en": "Note: Nothing is uploaded to the server. Everything happens locally in your web browser. \n\nYou can reload the page without losing your files/settings. \n\nThe page should work on all modern desktop web browsers. But it might also work on mobile in some cases.",
+        "sv": "Obs: Inget laddas upp till servern. Allt sker lokalt i din webbläsare. \n\nDu kan uppdatera sidan utan att förlora dina filer/inställningar. \n\nSidan bör fungera i alla moderna skrivbordswebbläsare. Men det kan också fungera på mobilen i vissa fall.",
+        "no": "Merk: Ingenting lastes opp til serveren. Alt skjer lokalt i nettleseren din. \n\nDu kan oppdatere siden uten å miste filene/innstillingene dine. \n\nSiden skal fungere i alle moderne skrivebordsnettlesere. Men det kan også fungere på mobil i noen tilfeller.",
+        "fi": "Huomaa: Mitään ei lähetetä palvelimelle. Kaikki tapahtuu paikallisesti verkkoselaimesi sisällä. \n\nVoit päivittää sivun menettämättä tiedostoja/asetuksia. \n\nSivun pitäisi toimia kaikissa moderneissa työpöytäverkkoselaimissa. Mutta se saattaa toimia myös mobiililaitteissa joissakin tapauksissa.",
+        "da": "Bemærk: Intet uploades til serveren. Alt sker lokalt i din webbrowser. \n\nDu kan genindlæse siden uden at miste dine filer/indstillinger. \n\nSiden bør fungere på alle moderne desktop-webbrowsere. Men det kan også fungere på mobil i nogle tilfælde.",
+        "de": "Hinweis: Es wird nichts auf den Server hochgeladen. Alles geschieht lokal in Ihrem Webbrowser. \n\nSie können die Seite neu laden, ohne Ihre Dateien/Einstellungen zu verlieren. \n\nDie Seite sollte in allen modernen Desktop-Webbrowsern funktionieren. Aber es könnte auch auf Mobilgeräten in einigen Fällen funktionieren."
+    },
+    "Click here to select audio files.": {
+        "en": "Click here to select audio files.",
+        "sv": "Klicka här för att välja ljudfiler.",
+        "no": "Klikk her for å velge lydfiler.",
+        "fi": "Klikkaa tästä valitaksesi äänitiedostoja.",
+        "da": "Klik her for at vælge lydfiler.",
+        "de": "Klicken Sie hier, um Audiodateien auszuwählen."
+    },
+    "Clear workspace": {
+        "en": "Clear workspace",
+        "sv": "Rensa arbetsutrymme",
+        "no": "Tøm arbeidsområdet",
+        "fi": "Tyhjennä työtila",
+        "da": "Ryd arbejdsområde",
+        "de": "Arbeitsbereich leeren"
+    },
+    "Export all": {
+        "en": "Export all",
+        "sv": "Exportera alla",
+        "no": "Eksporter alt",
+        "fi": "Vie kaikki",
+        "da": "Eksporter alle",
+        "de": "Alle exportieren"
+    },
+    "Disable LUFS meters": {
+        "en": "Disable LUFS meters",
+        "sv": "Inaktivera LUFS-mätare",
+        "no": "Deaktiver LUFS-målere",
+        "fi": "Poista LUFS-mittarit käytöstä",
+        "da": "Deaktiver LUFS-målere",
+        "de": "LUFS-Messgeräte deaktivieren"
+    },
+    "Loading...": {
+        "en": "Loading...",
+        "sv": "Laddar...",
+        "no": "Laster...",
+        "fi": "Ladataan...",
+        "da": "Indlæser...",
+        "de": "Laden..."
+    },
+    "Export": {
+        "en": "Export",
+        "sv": "Exportera",
+        "no": "Eksporter",
+        "fi": "Vie",
+        "da": "Eksporter",
+        "de": "Exportieren"
+    },
+    "Enable LUFS meters": {
+        "en": "Enable LUFS meters",
+        "sv": "Aktivera LUFS-mätare",
+        "no": "Aktiver LUFS-målere",
+        "fi": "Ota LUFS-mittarit käyttöön",
+        "da": "Aktiver LUFS-målere",
+        "de": "LUFS-Messgeräte aktivieren"
+    }
+}

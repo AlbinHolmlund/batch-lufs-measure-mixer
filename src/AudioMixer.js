@@ -195,8 +195,9 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children }) 
 `;
 
 const formatLufs = (lufs) => {
-    // Lock to 1 decimal, and keep 1 decimal if it's a whole number
-    return Math.round(lufs * 10) / 10;
+    // Lock to 1 decimal
+    // Example: 1.0, 0.5, 0.0, -0.5, -1.0, 7.6
+    return (Math.round(lufs * 10) / 10).toFixed(1);
 }
 
 let MixerTrackAnalyzer = ({ gainNode, ...props }) => {

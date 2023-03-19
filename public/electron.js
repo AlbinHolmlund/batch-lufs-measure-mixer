@@ -9,8 +9,8 @@ function startFileServer() {
     // Get an open port
     const port = require('get-port-sync')();
     // Serve the build folder as /audio/
-    const app = electron.app || electron.remote.app;
-    const appPath = app.getAppPath();
+    const electronApp = electron.app || electron.remote.app;
+    const appPath = electronApp.getAppPath();
 
     const filePath = path.join(appPath, 'build');
     app.use('/audio', express.static(filePath));

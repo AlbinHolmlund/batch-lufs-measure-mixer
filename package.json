@@ -44,9 +44,6 @@
       "build/**/*",
       "node_modules/**/*"
     ],
-    "extraResources": [
-      "build"
-    ],
     "directories": {
       "buildResources": "assets"
     },

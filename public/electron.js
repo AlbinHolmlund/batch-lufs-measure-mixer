@@ -1,4 +1,5 @@
 const { app, BrowserWindow } = require('electron');
+const electron = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 
@@ -7,13 +8,18 @@ function startFileServer() {
     const app = express();
     // Get an open port
     const port = require('get-port-sync')();
-    // Serve the build folder
-    const appPath = process.env.NODE_ENV === 'production' ? `${process.resourcesPath}/build` : __dirname;
-    app.use(express.static(appPath));
+    // Serve the build folder as /audio/
+    const app = electron.app || electron.remote.app;
+    const appPath = app.getAppPath();
+
+    const filePath = path.join(appPath, 'build');
+    app.use('/audio', express.static(filePath));
+
     // Start the server
     app.listen(port, () => {
         console.log(`Server started on port ${port}`);
     });
+
     return port;
 }
 

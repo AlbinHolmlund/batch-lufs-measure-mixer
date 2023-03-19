@@ -9,6 +9,9 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// In electron.js, add this to the createWindow function:
+// win.webContents.session.setCacheEnabled(false);
+
 const slugify = (str) => {
     const map = {
         '-': ' ',
@@ -46,7 +49,7 @@ export function cacheFiles(fileList) {
                 // Add file to cache
                 const response = await fetch(file.dataUri);
                 console.log('response', response);
-                await cache.put('/' + file.name, response);
+                await cache.put(window.PUBLIC_URL + '/' + file.name, response);
                 // Return url
                 return file.name;
             });

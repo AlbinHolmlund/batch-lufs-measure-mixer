@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "https://skrap.info/audio",
+  "main": "public/electron.js",
   "dependencies": {
     "@domchristie/needles": "^0.0.2-1",
     "@emotion/react": "^11.10.6",
@@ -14,6 +15,7 @@
     "@testing-library/user-event": "^13.5.0",
     "audiobuffer-to-wav": "^1.0.0",
     "dotenv": "^16.0.3",
+    "electron-is-dev": "^2.0.0",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "react": "^18.2.0",
@@ -28,7 +30,30 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron-start": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-build": "npm run build && electron-builder",
+    "release": "npm run electron-build -- -p always"
+  },
+  "build": {
+    "appId": "info.skrap.batchlufsmeasuremixer",
+    "productName": "Batch LUFS Measure & Mixer Tool",
+    "files": [
+      "build/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -47,5 +72,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "electron": "^23.1.4",
+    "electron-builder": "^23.6.0",
+    "wait-on": "^7.0.1"
   }
 }

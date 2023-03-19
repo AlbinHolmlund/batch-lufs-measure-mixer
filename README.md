@@ -2,6 +2,12 @@
 
 Live at [skrap.info/audio](https://skrap.info/audio)
 
+## Electron standalone app
+
+I have added some code that makes it possible to build this app as a standalone Electron app. This is not the default build, but you can build it by running `npm run electron-build` instead of `npm run build`. The resulting app will be in the `dist` folder.
+
+To run it for development, you can run `npm run electron-start`. This will start the app in a window, but you can also open the developer tools with `Ctrl+Shift+I`. It will also open the app in your browser, but you can close that tab.
+
 ----------------------------
 
 # Getting Started with Create React App

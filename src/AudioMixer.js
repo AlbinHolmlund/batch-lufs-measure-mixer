@@ -79,7 +79,7 @@ const MixerTrack = styled.div`
     align-items: center;
     justify-content: center;
     border: 4px solid currentColor;
-    border-radius: 5px;
+    border-radius: 10px;
     margin: 10px;
     color: #000;
     background-color: #fff;
@@ -97,16 +97,12 @@ const MixerTrack = styled.div`
 
     button{
         margin: 5px;
-        background-color: #000;
-        border: 2px solid #222;
+        background-color: #0a1929;
         color: #fff;
-        font-weight: bold;
-        border-radius: 5px;
-        padding: 0 5px;
         cursor: pointer;
 
         &:hover{
-            background-color: #000;
+            background-color: #0a1929;
             color: #fff;
         }
     }
@@ -306,7 +302,7 @@ let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
         if (gainNode) {
             var loudnessMeter = new LoudnessMeter({
                 source: gainNode,
-                workerUri: '/needles-worker.js'
+                workerUri: window.PUBLIC_URL + '/needles-worker.js'
             });
             loudnessMeter.on('dataavailable', function (event) {
                 // event.data.mode // momentary | short-term | integrated
@@ -445,7 +441,7 @@ const exportAudioBuffer = async (audioBuffer, fileName, volumeInDB, returnValue)
 };
 
 // Only one mixer at a time, and it connects to the audio context via props. The volume is based on dB, and the slider is based on a linear scale. Apply volume to the audio as a step before sending it to the audio context.
-const AudioMixer = ({ files, audioContext }) => {
+const AudioMixer = ({ files, audioContext, otherTools }) => {
     const { __ } = useLanguage();
 
     // Tracks contains a gain node and an audio buffer source node
@@ -592,6 +588,8 @@ const AudioMixer = ({ files, audioContext }) => {
                         >
                             {__(highPerfMode ? 'Enable LUFS meters' : 'Disable LUFS meters')}
                         </Button>
+
+                        {otherTools}
                     </>
                 ) : null}
             </div>
@@ -604,10 +602,14 @@ const AudioMixer = ({ files, audioContext }) => {
                                 <MixerTrackVolume>
                                     <MixerTrackVolumeSlider />
                                 </MixerTrackVolume>
-                                <button>
+                                <Button
+                                    size="small"
+                                >
                                     {__('Export')}
-                                </button>
-                                <audio controls />
+                                </Button>
+                                <div>
+                                    <audio controls />
+                                </div>
                             </PlaceholderMixerTrack>
                         );
                     }
@@ -653,6 +655,7 @@ const AudioMixer = ({ files, audioContext }) => {
                                 </MixerTrackVolumeSlider>
 
                                 <Button
+                                    size="small"
                                     onClick={() => {
                                         // Export the audio buffer
                                         exportAudioBuffer(track.audioBuffer, track.name, track.gainNode.gain.value);

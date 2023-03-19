@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Flag from "react-flags";
 import AudioMixer from './AudioMixer';
 import { cacheFiles } from './FileCache';
 import Button from '@mui/material/Button';
+// Select dropdown
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import { useLanguage } from './useLanguage';
 
 const ClearButton = styled.button`
@@ -65,6 +68,59 @@ FileInputArea = styled(FileInputArea)`
         z-index: 100000;
     }
 `;
+
+const LanguagePicker = ({ currentLanguage, setLanguage }) => {
+    const buttonRef = useRef(null);
+    const [open, setOpen] = useState(false);
+    const { __ } = useLanguage();
+
+    // Button triggers a menu
+    return (
+        <>
+            <Button
+                ref={buttonRef}
+                onClick={() => setOpen(true)}
+            >
+                {__('Language')}
+            </Button>
+
+            <Menu
+                id="language-picker"
+                anchorEl={buttonRef.current}
+                open={open}
+                onClose={() => setOpen(false)}
+                style={{ zIndex: 10000000000 }}
+            >
+                {['sv', 'en', 'no', 'fi', 'da', 'de'].map((lang) => {
+                    const flagMapping = {
+                        'sv': 'se',
+                        'en': 'gb',
+                        'no': 'no',
+                        'fi': 'fi',
+                        'da': 'dk',
+                        'de': 'de'
+                    };
+                    const flag = (
+                        <Flag basePath="/audio" country={
+                            flagMapping[lang]
+                        } format="png" pngSize={16} shiny={true} />
+                    );
+                    return (
+                        <MenuItem
+                            key={lang}
+                            onClick={() => {
+                                setLanguage(lang);
+                                setOpen(false);
+                            }}
+                        >
+                            <span style={{ marginRight: '10px' }}>{flag}</span> {__(lang)}
+                        </MenuItem>
+                    );
+                })}
+            </Menu>
+        </>
+    );
+};
 
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
@@ -137,7 +193,7 @@ const AudioFilePicker = () => {
             const filesAsDataUri = urls.map((url) => {
                 return new Promise((resolve, reject) => {
                     // Read as array buffer
-                    fetch('/' + url).then((response) => response.arrayBuffer()).then((response) => {
+                    fetch(window.PUBLIC_URL + '/' + url).then((response) => response.arrayBuffer()).then((response) => {
                         console.log(url, URL.createObjectURL(new Blob([response])));
                         resolve({
                             name: url,
@@ -162,39 +218,6 @@ const AudioFilePicker = () => {
                 }}
             />
 
-
-            {['sv', 'en', 'no', 'fi', 'da', 'de'].map((lang) => {
-                const flagMapping = {
-                    'sv': 'se',
-                    'en': 'gb',
-                    'no': 'no',
-                    'fi': 'fi',
-                    'da': 'dk',
-                    'de': 'de'
-                };
-                return (
-                    <ClearButton
-                        onClick={() => {
-                            setLanguage(lang);
-                            // Send window event called "infoMessageReset"
-                            window.dispatchEvent(new Event('infoMessageReset'));
-                        }}
-                        style={{
-                            margin: '0 0.5em',
-                            opacity: lang === currentLanguage ? 1 : 0.5,
-                            transition: 'opacity 0.5s',
-                            'position': 'relative', zIndex: 10000000000
-                        }}
-                    >
-                        <Flag basePath="/audio" country={
-                            flagMapping[lang]
-                        } format="png" pngSize={24} shiny={true} />
-                    </ClearButton>
-                );
-            })}
-
-            <br />
-
             {files.length > 0 && (
                 <div style={{ marginTop: '40px' }}>
                     <Button
@@ -211,7 +234,13 @@ const AudioFilePicker = () => {
             )}
 
             {files && files.length > 0 && (
-                <AudioMixer files={files} audioContext={audioContext} />
+                <AudioMixer
+                    files={files}
+                    audioContext={audioContext}
+                    otherTools={(
+                        <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
+                    )}
+                />
             )}
         </div>
     );

@@ -62,5 +62,61 @@
         "fi": "Ota LUFS-mittarit käyttöön",
         "da": "Aktiver LUFS-målere",
         "de": "LUFS-Messgeräte aktivieren"
+    },
+    "Language": {
+        "sv": "Language",
+        "en": "Language",
+        "no": "Language",
+        "fi": "Language",
+        "da": "Language",
+        "de": "Language"
+    },
+    "sv": {
+        "sv": "Svenska",
+        "en": "Svenska",
+        "no": "Svenska",
+        "fi": "Svenska",
+        "da": "Svenska",
+        "de": "Svenska"
+    },
+    "en": {
+        "sv": "English",
+        "en": "English",
+        "no": "English",
+        "fi": "English",
+        "da": "English",
+        "de": "English"
+    },
+    "no": {
+        "sv": "Norsk",
+        "en": "Norsk",
+        "no": "Norsk",
+        "fi": "Norsk",
+        "da": "Norsk",
+        "de": "Norsk"
+    },
+    "fi": {
+        "sv": "Suomi",
+        "en": "Suomi",
+        "no": "Suomi",
+        "fi": "Suomi",
+        "da": "Suomi",
+        "de": "Suomi"
+    },
+    "da": {
+        "sv": "Dansk",
+        "en": "Dansk",
+        "no": "Dansk",
+        "fi": "Dansk",
+        "da": "Dansk",
+        "de": "Dansk"
+    },
+    "de": {
+        "sv": "Deutsch",
+        "en": "Deutsch",
+        "no": "Deutsch",
+        "fi": "Deutsch",
+        "da": "Deutsch",
+        "de": "Deutsch"
     }
 }

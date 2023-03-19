@@ -2,6 +2,20 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 
+function startFileServer() {
+    const express = require('express');
+    const app = express();
+    // Get an open port
+    const port = require('get-port-sync')();
+    // Serve the build folder
+    app.use(express.static(path.join(__dirname, '../build')));
+    // Start the server
+    app.listen(port, () => {
+        console.log(`Server started on port ${port}`);
+    });
+    return port;
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 800,
@@ -11,10 +25,15 @@ function createWindow() {
         },
     });
 
-    const url = isDev
-        ? 'http://localhost:3000'
-        : `file://${path.join(__dirname, '../build/index.html')}`;
-    win.loadURL(url);
+    if (!isDev) {
+        // Start the file server
+        const port = startFileServer();
+        // Load the index.html file
+        win.loadURL(`http://localhost:${port}`);
+        return;
+    } else {
+        win.loadURL('http://localhost:3000');
+    }
 }
 
 app.whenReady().then(createWindow);

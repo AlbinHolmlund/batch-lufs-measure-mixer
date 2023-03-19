@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 're
 //  import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import Button from '@mui/material/Button';
+import ReactNbsp from 'react-nbsp'
 
 import toWav from 'audiobuffer-to-wav';
 import JSZip from 'jszip';
@@ -116,8 +117,103 @@ const PlaceholderMixerTrack = styled(MixerTrack)`
     opacity: 0.25;
 `;
 
+const MultilinePart = ({ children, topRef, onIsMultiLineChange, index, ...props }) => {
+    // Compare top offset of this compared to last topRef.current (if not null) and set isMultiLine accordingly
+    const ref = useRef(null);
 
-const MixerTrackName = styled.div`
+    useEffect(() => {
+        console.log(topRef.current);
+        if (topRef.current && (topRef.current != 'found')) {
+            const isMultiLine = ref.current.offsetTop !== topRef.current.offsetTop;
+            if (isMultiLine) {
+                topRef.current = 'found';
+                onIsMultiLineChange(isMultiLine ? index : false);
+            }
+        }
+        if (topRef.current != 'found') {
+            topRef.current = ref.current;
+        }
+    }, [children, topRef, onIsMultiLineChange]);
+
+    return (
+        <span ref={ref} {...props}>
+            {children}
+        </span>
+    );
+};
+
+const LabelEllipsis = ({ text, ...props }) => {
+    const topRef = useRef(null);
+    const [isMultiLine, setIsMultiLine] = useState(false);
+
+    console.log('isMultiLine', isMultiLine);
+
+    const ellipsisEnd = useMemo(() => {
+        topRef.current = null;
+        const childrenSpans = text.split(' ').map((word, i) => (
+            <MultilinePart
+                key={i + '_' + word}
+                index={i}
+                topRef={topRef}
+                onIsMultiLineChange={setIsMultiLine}
+            >
+                {word + ' '}
+            </MultilinePart>
+        ));
+        return (
+            <span
+                style={{
+                    whiteSpace: isMultiLine ? 'nowrap' : '',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block'
+                }}
+            >
+                {childrenSpans}
+            </span>
+        );
+    }, [text, isMultiLine]);
+
+    const ellipsisStart = useMemo(() => {
+        if (!isMultiLine) {
+            return null;
+        }
+        // Build span list starting from isMultiLine (index)
+        const childrenSpans = text.split(' ').slice(isMultiLine - 1).map((word, i) => (
+            <span
+                key={i + '_' + word}
+                style={{
+                    direction: 'ltr',
+                    display: 'inline-block'
+                }}
+            >
+                {word}<ReactNbsp />
+            </span>
+        )).reverse();
+        return (
+            <span
+                style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block',
+                    direction: 'rtl'
+                }}
+            >
+                {childrenSpans}
+            </span>
+        );
+    }, [text, isMultiLine]);
+
+    return (
+        <div {...props} title={text}>
+            {ellipsisEnd}
+            {ellipsisStart}
+        </div>
+    );
+}
+
+const MixerTrackName = styled(LabelEllipsis)`
     font-size: 0.9em;
     font-weight: bold;
     text-align: left;
@@ -504,11 +600,7 @@ const AudioMixer = ({ files, audioContext }) => {
                     if (!track) {
                         return (
                             <PlaceholderMixerTrack>
-                                <MixerTrackName>
-                                    <span>
-                                        {__('Loading...')}
-                                    </span>
-                                </MixerTrackName>
+                                <MixerTrackName text={__('Loading...')} />
                                 <MixerTrackVolume>
                                     <MixerTrackVolumeSlider />
                                 </MixerTrackVolume>
@@ -537,7 +629,7 @@ const AudioMixer = ({ files, audioContext }) => {
                                 }
                             }}
                         >
-                            <MixerTrackName>{track.name}</MixerTrackName>
+                            <MixerTrackName text={track.name} />
                             <MixerTrackVolume>
                                 <MixerTrackVolumeSlider
                                     file={track}

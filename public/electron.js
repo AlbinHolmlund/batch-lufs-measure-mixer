@@ -8,7 +8,8 @@ function startFileServer() {
     // Get an open port
     const port = require('get-port-sync')();
     // Serve the build folder
-    app.use(express.static(path.join(__dirname, '../build')));
+    const appPath = process.env.NODE_ENV === 'production' ? `${process.resourcesPath}/build` : __dirname;
+    app.use(express.static(appPath));
     // Start the server
     app.listen(port, () => {
         console.log(`Server started on port ${port}`);

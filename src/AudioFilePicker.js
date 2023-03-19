@@ -111,6 +111,7 @@ const LanguagePicker = ({ currentLanguage, setLanguage }) => {
                             onClick={() => {
                                 setLanguage(lang);
                                 setOpen(false);
+                                window.dispatchEvent(new Event('infoMessageReset'));
                             }}
                         >
                             <span style={{ marginRight: '10px' }}>{flag}</span> {__(lang)}

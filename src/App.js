@@ -38,8 +38,9 @@ const AlertStyled = styled(Alert)`
   position: fixed;
   left: 20px;
   bottom: 20px;
-  z-index: 100000;
+  z-index: 1000000000000;
   max-width: 500px;
+  max-width: min(500px, calc(100vw - 40px));
   white-space: pre-wrap;
 `;
 

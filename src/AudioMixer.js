@@ -72,7 +72,62 @@ const MixerContainer = styled.div`
     text-align: center;
 `;
 
-const MixerTrack = styled.div`
+const calculateZoomLevel = () => {
+    let val = window.innerWidth / (770 / 0.7);
+    let min = 0.8;
+    let max = 1.1;
+    return Math.min(Math.max(val, min), max);
+}
+
+const useCardsZoomLevel = () => {
+    // Zoom is either localStorage.getItem('cards-zoom-level') or if the value isn't set it will instead calculate its zoom value based on the width (0.7 at 770px width)
+    const [zoomLevel, setZoomLevel] = useState(() => {
+        const zoomLevel = window.localStorage.getItem('cardsZoomLevel');
+        if (zoomLevel) {
+            return parseFloat(zoomLevel);
+        } else {
+            return calculateZoomLevel();
+        }
+    });
+
+    useEffect(() => {
+        /* 
+            Update zoom level when:
+            - window is resized
+            - zoom level localStorage value is changed
+        */
+        const onResize = () => {
+            const zoomLevel = window.localStorage.getItem('cardsZoomLevel');
+            if (zoomLevel) {
+                setZoomLevel(parseFloat(zoomLevel));
+            } else {
+                setZoomLevel(calculateZoomLevel());
+            }
+        };
+        window.addEventListener('resize', onResize);
+        window.addEventListener('storage', onResize);
+        return () => {
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('storage', onResize);
+        }
+    }, []);
+
+    return zoomLevel;
+}
+
+const MixerTrack = styled(({ className, children, ...props }) => {
+    const cardsZoomLevel = useCardsZoomLevel();
+    return (
+        <div
+            className={className} {...props}
+            style={{
+                zoom: cardsZoomLevel
+            }}
+        >
+            {children}
+        </div>
+    );
+})`
     position: relative;
     display: flex;
     flex-direction: column;

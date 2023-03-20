@@ -135,6 +135,13 @@ const arrayBufferToBase64 = (buffer) => {
     return window.btoa(binary);
 };
 
+const Toolbar = styled.div`
+    margin-top: 40px;
+    & > * {
+        margin: 0 10px !important;
+    }
+`;
+
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
     const { __, setLanguage, currentLanguage } = useLanguage();
@@ -240,7 +247,20 @@ const AudioFilePicker = () => {
             />
 
             {((files && files.length > 0) || localStorage.getItem('files')) && (
-                <div style={{ marginTop: '40px' }}>
+                <Toolbar>
+                    {(localStorage.getItem('files') && !localStorageFiles) && (
+                        <Button
+                            onClick={() => {
+                                setLocalStorageFiles(JSON.parse(localStorage.getItem('files')));
+                            }}
+                            color="primary"
+                            style={{ backgroundColor: '#071318' }}
+                            className="pulse"
+                        >
+                            {__('Restore last workspace')}
+                        </Button>
+                    )}
+
                     <Button
                         onClick={() => {
                             setFiles([]);
@@ -253,19 +273,8 @@ const AudioFilePicker = () => {
                         {__('Clear workspace')}
                     </Button>
 
-                    {(localStorage.getItem('files') && !localStorageFiles) && (
-                        <Button
-                            onClick={() => {
-                                setLocalStorageFiles(JSON.parse(localStorage.getItem('files')));
-                            }}
-                            color="primary"
-                        >
-                            {__('Restore last workspace')}
-                        </Button>
-                    )}
-
                     <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
-                </div>
+                </Toolbar>
             )}
 
             {((files && files.length > 0) || localStorageFiles) && (

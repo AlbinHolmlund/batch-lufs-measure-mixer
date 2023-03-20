@@ -22,6 +22,25 @@ const CssGlobals = createGlobalStyle`
     background-color: #0a1929 !important;
     color: #fff;
   }
+
+  .pulse {
+	  animation: pulse-animation 2.5s infinite;
+	}
+
+	@keyframes pulse-animation {
+		0% {
+			box-shadow: 0 0 0 0px #42a5f565;
+      background-color: var(--color-primary, #07131805);
+		}
+		80% {
+			box-shadow: 0 0 10px 10px #42a5f500;
+      background-color: var(--color-primary-hover, #071318);
+		}
+    100% {
+			box-shadow: 0 0 10px 10px #42a5f500;
+      background-color: var(--color-primary, #07131805);
+    }
+	}
 `;
 
 const DevMenu = styled.div`

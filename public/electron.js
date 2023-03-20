@@ -128,7 +128,7 @@ async function createWindow() {
     ]);
     Menu.setApplicationMenu(menu);
 
-    if (!isDev || 1) {
+    if (!isDev) {
         // Start the file server
         const port = await startFileServer();
         // Load the index.html file

@@ -1,13 +1,21 @@
 // Register the service worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {// Register a service worker
-        navigator.serviceWorker.register(window.PUBLIC_URL + '/sw-file-cache.js').then(function (reg) {
-            console.log('Service worker registered!', reg);
-        }).catch(function (err) {
-            console.log('Service worker registration failed: ', err);
+const swRegisterPromise = new Promise((resolve, reject) => {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {// Register a service worker
+            console.log(window.PUBLIC_URL + '/sw-file-cache.js');
+            navigator.serviceWorker.register(window.PUBLIC_URL + '/sw-file-cache.js').then(function (reg) {
+                console.log('Service worker registered!', reg);
+                resolve(reg);
+            }).catch(function (err) {
+                console.log('Service worker registration failed: ', err);
+                reject(err);
+            });
         });
-    });
-}
+    } else {
+        console.log('Service workers are not supported.');
+        resolve(null);
+    }
+});
 
 // In electron.js, add this to the createWindow function:
 // win.webContents.session.setCacheEnabled(false);
@@ -32,7 +40,9 @@ const slugify = (str) => {
 
 
 // Function to cache files and return URLs
-export function cacheFiles(fileList) {
+export async function cacheFiles(fileList) {
+    await swRegisterPromise;
+
     // fileList:
     /*[
         {
@@ -42,16 +52,23 @@ export function cacheFiles(fileList) {
     ]*/
     return new Promise((resolve, reject) => {
         // Open cache
-        caches.open('file-cache4').then((cache) => {
+        caches.open('file-cache5').then((cache) => {
             // Add files to cache
             const promises = fileList.map(async (file) => {
+                const fileName = file.name;
                 // file.name = slugify(file.name);
                 // Add file to cache
-                const response = await fetch(file.dataUri);
-                console.log('response', response);
-                await cache.put(window.PUBLIC_URL + '/' + file.name, response);
+                // const response = await fetch(file.dataUri);
+                // Use file.data which is an array buffer to create a response
+
+                cache.put(fileName, new Response(file.data, {
+                    headers: {
+                        'Content-Type': 'audio/wav'
+                    }
+                }));
+
                 // Return url
-                return file.name;
+                return fileName;
             });
             Promise.all(promises).then((fileNames) => {
                 // Resolve

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import moment from 'moment';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { createGlobalStyle } from 'styled-components';
 import styled from 'styled-components';
@@ -34,15 +35,40 @@ const DevMenu = styled.div`
   }
 `;
 
-const AlertStyled = styled(Alert)`
+const AlertContainer = styled.div`
   position: fixed;
   left: 20px;
   bottom: 20px;
   z-index: 1000000000000;
   max-width: 500px;
   max-width: min(500px, calc(100vw - 40px));
+`;
+
+const AlertStyled = styled(Alert)`
   white-space: pre-wrap;
 `;
+
+let dummyMessages = [
+  {
+    id: 'something',
+    date: '2021-09-01 12:00:00',
+    message: 'This is a test log message',
+  },
+  {
+    id: 'something2',
+    date: '2021-09-01 12:00:00',
+    message: 'This is a test log message',
+  },
+];
+
+// If the user has visited before (lastVisit is set in localStorage), then we will show the info messages based on date being greater than lastVisit.
+const lastVisit = localStorage.getItem('lastVisit');
+if (lastVisit) {
+  dummyMessages = dummyMessages.filter((message) => {
+    return moment(message.date).isAfter(lastVisit);
+  });
+}
+localStorage.setItem('lastVisit', moment().format('YYYY-MM-DD HH:mm:ss'));
 
 const InfoMessage = ({ children }) => {
   const { __ } = useLanguage();
@@ -73,9 +99,11 @@ const InfoMessage = ({ children }) => {
   }
 
   return (
-    <AlertStyled severity="info" onClose={() => setDisplay(false)}>
-      {__('infoMessage')}
-    </AlertStyled>
+    <AlertContainer>
+      <AlertStyled severity="info" onClose={() => setDisplay(false)}>
+        {__('infoMessage')}
+      </AlertStyled>
+    </AlertContainer>
   );
 };
 

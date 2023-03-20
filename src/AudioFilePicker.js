@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import Flag from "react-flags";
+// import Flag from "react-flags";
 import AudioMixer from './AudioMixer';
 import { cacheFiles } from './FileCache';
 import Button from '@mui/material/Button';
@@ -69,6 +69,15 @@ FileInputArea = styled(FileInputArea)`
     }
 `;
 
+const flagMapping = {
+    'sv': 'se',
+    'en': 'gb',
+    'no': 'no',
+    'fi': 'fi',
+    'da': 'dk',
+    'de': 'de'
+};
+
 const LanguagePicker = ({ currentLanguage, setLanguage }) => {
     const buttonRef = useRef(null);
     const [open, setOpen] = useState(false);
@@ -81,7 +90,7 @@ const LanguagePicker = ({ currentLanguage, setLanguage }) => {
                 ref={buttonRef}
                 onClick={() => setOpen(true)}
             >
-                {__('Language')}
+                {__('Language')} <span style={{ marginLeft: '10px' }} className={`fi fi-${flagMapping[currentLanguage]}`}></span>
             </Button>
 
             <Menu
@@ -92,18 +101,11 @@ const LanguagePicker = ({ currentLanguage, setLanguage }) => {
                 style={{ zIndex: 10000000000 }}
             >
                 {['sv', 'en', 'no', 'fi', 'da', 'de'].map((lang) => {
-                    const flagMapping = {
-                        'sv': 'se',
-                        'en': 'gb',
-                        'no': 'no',
-                        'fi': 'fi',
-                        'da': 'dk',
-                        'de': 'de'
-                    };
                     const flag = (
-                        <Flag basePath="/audio" country={
-                            flagMapping[lang]
-                        } format="png" pngSize={16} shiny={true} />
+                        <span
+                            //class="fi fi-gr"
+                            className={`fi fi-${flagMapping[lang]}`}
+                        ></span>
                     );
                     return (
                         <MenuItem
@@ -121,6 +123,16 @@ const LanguagePicker = ({ currentLanguage, setLanguage }) => {
             </Menu>
         </>
     );
+};
+
+const arrayBufferToBase64 = (buffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
 };
 
 // Multifile picker, with audio file type filter
@@ -151,25 +163,32 @@ const AudioFilePicker = () => {
                         // Get blob: url
                         data: reader.result,
                         dataUri: URL.createObjectURL(new Blob([reader.result])),
+                        // data uri is base64 encoded
+                        // dataUri: 'data:' + file.type + ';base64,' + arrayBufferToBase64(reader.result)
                     });
                 }
                 reader.onerror = reject;
             });
         });
 
-        (async () => {
-            // Cache the files
-            const files = await Promise.all(filesAsDataUri);
-            const urls = await cacheFiles(files.map((file) => {
-                return {
-                    name: file.name,
-                    dataUri: file.dataUri
-                };
-            }))
-            console.log('done', urls);
-            // Save in localStorage
-            localStorage.setItem('files', JSON.stringify(urls));
-        })();
+        try {
+            (async () => {
+                // Cache the files
+                const files = await Promise.all(filesAsDataUri);
+                const urls = await cacheFiles(files.map((file) => {
+                    return {
+                        name: file.name,
+                        dataUri: file.dataUri,
+                        data: file.data
+                    };
+                }))
+                console.log('done', urls);
+                // Save in localStorage
+                localStorage.setItem('files', JSON.stringify(urls));
+            })();
+        } catch (e) {
+            console.log(e);
+        }
 
         // Set the files state
         /*Promise.all(filesAsDataUri).then((files) => {
@@ -194,8 +213,8 @@ const AudioFilePicker = () => {
             const filesAsDataUri = urls.map((url) => {
                 return new Promise((resolve, reject) => {
                     // Read as array buffer
-                    fetch(window.PUBLIC_URL + '/' + url).then((response) => response.arrayBuffer()).then((response) => {
-                        console.log(url, URL.createObjectURL(new Blob([response])));
+                    fetch(url).then((response) => response.arrayBuffer()).then((response) => {
+                        // console.log(url, URL.createObjectURL(new Blob([response])));
                         resolve({
                             name: url,
                             // Get blob: url

@@ -398,9 +398,19 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
     }
 `;
 
+const decodeAudioData = (arrayBuffer, audioCtx) => {
+    return new Promise((resolve, reject) => {
+        audioCtx.decodeAudioData(arrayBuffer, resolve, reject);
+    });
+};
 
-const exportAudioBuffer = async (audioBuffer, fileName, volumeInDB, returnValue) => {
+const exportAudioBuffer = async (arrayBuffer, fileName, volumeInDB, returnValue) => {
     // Create a new offline context
+    const audioCtx = new AudioContext();
+
+    // Decode the audio data
+    const audioBuffer = await decodeAudioData(arrayBuffer, audioCtx);
+
     console.log('exportAudioBuffer', audioBuffer);
 
     let offlineCtx = new OfflineAudioContext(
@@ -480,7 +490,9 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                     return {
                         index,
                         name: file.name,
-                        audioBuffer: await audioContext.decodeAudioData(file.data),
+                        // Cloned buffer data
+                        audioData: file.data,
+                        // audioBuffer: await audioContext.decodeAudioData(file.data),
                         audioBufferSourceNode: audioSource,
                         audio,
                         gainNode,
@@ -562,7 +574,9 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                 (async () => {
                                     var zip = new JSZip();
                                     var blobs = await Promise.all(tracks.map((track) => {
-                                        return exportAudioBuffer(track.audioBuffer, track.name, track.gainNode.gain.value, true);
+                                        // Based track.audioData
+                                        const audioBuffer = track.audioData;
+                                        return exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value, true);
                                     }));
 
                                     blobs.forEach((blob, index) => {
@@ -658,7 +672,8 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                     size="small"
                                     onClick={() => {
                                         // Export the audio buffer
-                                        exportAudioBuffer(track.audioBuffer, track.name, track.gainNode.gain.value);
+                                        const audioBuffer = track.audioData;
+                                        exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value);
                                     }}
                                 >
                                     {__('Export')}

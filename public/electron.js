@@ -128,6 +128,14 @@ async function createWindow() {
     ]);
     Menu.setApplicationMenu(menu);
 
+    // Set the icon for the windows and mac
+    // Location of icons is public/icons and their called favicon
+    if (process.platform === 'win32') {
+        win.setIcon(path.join(__dirname, 'icons/favicon.ico'));
+    } else if (process.platform === 'darwin') {
+        win.setIcon(path.join(__dirname, 'icons/favicon.icns'));
+    }
+
     if (!isDev) {
         // Start the file server
         const port = await startFileServer();

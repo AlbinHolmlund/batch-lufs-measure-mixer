@@ -138,6 +138,7 @@ const arrayBufferToBase64 = (buffer) => {
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
     const { __, setLanguage, currentLanguage } = useLanguage();
+    const [localStorageFiles, setLocalStorageFiles] = useState(null);
     const [files, setFiles] = useState([]);
 
     const [audioContext, setAudioContext] = useState(null);
@@ -200,8 +201,8 @@ const AudioFilePicker = () => {
     }
 
     useEffect(() => {
-        if (localStorage.getItem('files')) {
-            const urls = JSON.parse(localStorage.getItem('files'));
+        if (localStorageFiles) {
+            const urls = localStorageFiles;
 
             if (!audioContext) {
                 // Create audio context
@@ -227,39 +228,50 @@ const AudioFilePicker = () => {
 
             setFiles(filesAsDataUri);
         }
-    }, []);
+    }, [localStorageFiles]);
 
     return (
         <div style={{ textAlign: 'center' }}>
             <FileInputArea
                 onChange={handleFileChange}
                 style={{
-                    display: files.length > 0 ? 'none' : 'block'
+                    display: (files.length > 0 || localStorage.getItem('files')) ? 'none' : 'block'
                 }}
             />
 
-            {files.length > 0 && (
+            {((files && files.length > 0) || localStorage.getItem('files')) && (
                 <div style={{ marginTop: '40px' }}>
                     <Button
                         onClick={() => {
                             setFiles([]);
                             setAudioContext(null);
                             localStorage.removeItem('files');
+                            setLocalStorageFiles(null);
                         }}
                         color="error"
                     >
                         {__('Clear workspace')}
                     </Button>
+
+                    {(localStorage.getItem('files') && !localStorageFiles) && (
+                        <Button
+                            onClick={() => {
+                                setLocalStorageFiles(JSON.parse(localStorage.getItem('files')));
+                            }}
+                            color="primary"
+                        >
+                            {__('Restore last workspace')}
+                        </Button>
+                    )}
+
+                    <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
                 </div>
             )}
 
-            {files && files.length > 0 && (
+            {((files && files.length > 0) || localStorageFiles) && (
                 <AudioMixer
                     files={files}
                     audioContext={audioContext}
-                    otherTools={(
-                        <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
-                    )}
                 />
             )}
         </div>

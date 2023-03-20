@@ -118,5 +118,13 @@
         "fi": "Deutsch",
         "da": "Deutsch",
         "de": "Deutsch"
+    },
+    "Restore last workspace": {
+        "sv": "Återställ arbetsutrymme",
+        "en": "Restore last workspace",
+        "no": "Gjenopprett siste arbeidsområde",
+        "fi": "Palauta viimeisin työtila",
+        "da": "Gendan sidste arbejdsområde",
+        "de": "Letzten Arbeitsbereich wiederherstellen"
     }
 }

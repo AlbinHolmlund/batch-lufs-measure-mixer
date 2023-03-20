@@ -1,10 +1,12 @@
-const { app, BrowserWindow } = require('electron');
-const { Menu } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 const isDev = require('electron-is-dev');
 const express = require('express');
-const getPortPromise = import('get-port');
+const getPort = require('get-port'); // Last version before switching to ESM is 5.1.1
+
+global.__dirname = app.getAppPath();
+console.log('window.__dirname', global.__dirname);
 
 // Cache the result into a file, so that the port is the same on every run
 const cacheResult = async (key, fn) => {
@@ -46,22 +48,32 @@ const clearCache = async () => {
 
 async function startFileServer() {
     // Get get port
-    const getPort = await getPortPromise.then((module) => module.default);
     const app = express();
 
     // Get an open port (3000 if available)
-    const port = await cacheResult('port', () => getPort({ port: 3000 }));
-
+    const port = await getPort({ port: 3960 });
     console.log('port', port);
 
     // Serve the build folder as /audio/ (for production)
-    app.use('/audio', express.static(path.join(__dirname, '../build')));
-    app.use('/', express.static(path.join(__dirname, '../build')));
+    app.get('*', (req, res) => {
+        console.log('req.path', req.path);
+        const filePath = path.join(__dirname, req.path.replace('audio', '../build/'));
+        console.log('filePath', filePath);
+
+        // Check if the file exists
+        if (fs.existsSync(filePath)) {
+            // Return the file
+            res.status(200).sendFile(filePath);
+        } else {
+            // Return a 404
+            res.status(404).send('File not found');
+        }
+    });
+
 
     // Start the server
     return new Promise((resolve, reject) => {
         const server = app.listen(port, () => {
-            const port = server.address().port;
             console.log('Server listening at port %s', port);
             resolve(port);
         });
@@ -116,13 +128,13 @@ async function createWindow() {
     ]);
     Menu.setApplicationMenu(menu);
 
-    if (!isDev) {
+    if (!isDev || 1) {
         // Start the file server
         const port = await startFileServer();
         // Load the index.html file
-        win.loadURL(`http://localhost:${port}`);
+        win.loadURL(`http://localhost:${port}/audio/index.html`);
     } else {
-        win.loadURL('http://localhost:3000');
+        win.loadURL('http://localhost:3000/audio');
     }
 }
 

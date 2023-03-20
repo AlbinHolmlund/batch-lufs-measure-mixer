@@ -2,6 +2,8 @@
 
 Live at [skrap.info/audio](https://skrap.info/audio)
 
+> Languages: "sv", "en", "no", "fi", "da", "de"
+
 ## Electron standalone app
 
 I have added some code that makes it possible to build this app as a standalone Electron app. This is not the default build, but you can build it by running `npm run electron-build` instead of `npm run build`. The resulting app will be in the `dist` folder.

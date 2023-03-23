@@ -146,6 +146,20 @@ async function createWindow() {
     } else {
         win.loadURL('http://localhost:3000/audio');
     }
+
+    // Add shortcut to reload the page
+    win.webContents.on('before-input-event', (event, input) => {
+        if (input.key === 'r' && input.meta) {
+            win.reload();
+        }
+    });
+
+    // Add shortcut to exit the app
+    win.webContents.on('before-input-event', (event, input) => {
+        if (input.key === 'q' && input.meta) {
+            app.quit();
+        }
+    });
 }
 
 app.whenReady().then(createWindow);

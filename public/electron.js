@@ -84,6 +84,8 @@ async function createWindow() {
     const win = new BrowserWindow({
         width: 800,
         height: 600,
+        // Set background color to white
+        backgroundColor: '#0e1928',
         webPreferences: {
             nodeIntegration: true,
         },
@@ -133,7 +135,7 @@ async function createWindow() {
     if (process.platform === 'win32') {
         win.setIcon(path.join(__dirname, 'icons/favicon.ico'));
     } else if (process.platform === 'darwin') {
-        win.setIcon(path.join(__dirname, 'icons/favicon.icns'));
+        // win.setIcon(path.join(__dirname, 'icons/favicon.icns'));
     }
 
     if (!isDev) {

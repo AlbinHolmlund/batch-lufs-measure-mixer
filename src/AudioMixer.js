@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 'react';
 //  import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+// Framer motion
+import { motion, AnimatePresence } from 'framer-motion';
 import Button from '@mui/material/Button';
 import ReactNbsp from 'react-nbsp'
 
@@ -9,6 +11,8 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { LoudnessMeter } from '@domchristie/needles';
 import { useLanguage } from './useLanguage';
+
+import AudioVisualizer from './AudioVisualizer.';
 
 
 const translateVolume = (volumeInDB) => {
@@ -118,14 +122,18 @@ const useCardsZoomLevel = () => {
 const MixerTrack = styled(({ className, children, ...props }) => {
     const cardsZoomLevel = useCardsZoomLevel();
     return (
-        <div
+        <motion.div
+            // Make draggable
+            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.1}
+            dragMomentum={false}
             className={className} {...props}
             style={{
                 zoom: cardsZoomLevel
             }}
         >
             {children}
-        </div>
+        </motion.div>
     );
 })`
     position: relative;
@@ -138,7 +146,7 @@ const MixerTrack = styled(({ className, children, ...props }) => {
     margin: 10px;
     color: #000;
     background-color: #fff;
-    transition: all 0.2s ease-in-out;
+    //transition: all 0.2s ease-in-out;
     
     min-height: 100%;
     flex: 1 1 auto 100%;
@@ -540,7 +548,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                     gainNode.connect(muteNode);
 
                     // Connect the mute node to the audio context destination
-                    muteNode.connect(audioContext.destination);
+                    muteNode.connect(audioContext.target || audioContext.destination);
 
                     return {
                         index,
@@ -620,6 +628,11 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
     return (
         <>
             <div>
+                <AudioVisualizer
+                    audioContext={audioContext}
+                    otherTools={otherTools}
+                />
+
                 {tracks && tracks.length ? (
                     <>
                         <Button
@@ -666,7 +679,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                 {tracks && tracks.map((track, index) => {
                     if (!track) {
                         return (
-                            <PlaceholderMixerTrack>
+                            <PlaceholderMixerTrack key={index}>
                                 <MixerTrackName text={__('Loading...')} />
                                 <MixerTrackVolume>
                                     <MixerTrackVolumeSlider />

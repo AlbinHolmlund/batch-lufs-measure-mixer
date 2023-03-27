@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import moment from 'moment';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { createGlobalStyle } from 'styled-components';
 import styled from 'styled-components';
@@ -9,6 +10,36 @@ import AudioFilePicker from './AudioFilePicker';
 import { LanguageProvider, useLanguage } from './useLanguage';
 
 import translations from './translations.json';
+import logo from './favicon.svg';
+
+
+const Header = styled.a`
+  position: fixed;
+  top: 0;
+  left: 0;
+  
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 1000000000000;
+
+  padding: 15px;
+
+  &:before {
+    content: '';
+    background-image: url(${logo});
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: left center;
+    height: 50px;
+    padding-left: 60px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: flex-end;
+  }
+`;
 
 
 const darkTheme = createTheme({
@@ -63,7 +94,7 @@ const AlertContainer = styled.div`
   max-width: min(500px, calc(100vw - 40px));
 `;
 
-const AlertStyled = styled(Alert)`
+const AlertStyled = styled(motion.div)`
   white-space: pre-wrap;
 `;
 
@@ -119,9 +150,20 @@ const InfoMessage = ({ children }) => {
 
   return (
     <AlertContainer>
-      <AlertStyled severity="info" onClose={() => setDisplay(false)}>
-        {__('infoMessage')}
-      </AlertStyled>
+      <AnimatePresence>
+        <AlertStyled
+          initial={{ opacity: 0, x: '-100%' }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: '-100%' }}
+        >
+          <Alert
+            severity="info"
+            onClose={() => setDisplay(false)}
+          >
+            {__('infoMessage')}
+          </Alert>
+        </AlertStyled>
+      </AnimatePresence>
     </AlertContainer>
   );
 };
@@ -199,7 +241,13 @@ function App() {
         <ThemeProvider theme={darkTheme}>
           <CssBaseline />
           <CssGlobals />
+
           <div className="App">
+            <Header
+              href="https://github.com/AlbinHolmlund/batch-lufs-measure-mixer"
+              title="Batch LUFS Measure Mixer"
+              target="_blank"
+            />
             <AudioFilePicker />
             <LocalStorageText />
           </div>

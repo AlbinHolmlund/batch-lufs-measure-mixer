@@ -58,15 +58,33 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
                 const bassMax = 32 * 255;
                 const bassNormalized = bass / bassMax;
 
-                const mid = dataArray.slice(32, 64).reduce((a, b) => a + b);
+                /*const mid = dataArray.slice(32, 64).reduce((a, b) => a + b);
+                const treble = dataArray.slice(64, 128).reduce((a, b) => a + b);*/
 
-                const treble = dataArray.slice(64, 128).reduce((a, b) => a + b);
+                // We use 5 bands of data for mid to high frequencies
+                // So midToHigh is an array of 5 values
+                const midToHigh = [];
+                midToHigh.push(0);
+                midToHigh.push(0);
+                for (let i = 0; i < 6; i++) {
+                    const start = 32 + i * 32;
+                    const end = start + 32;
+                    const sum = dataArray.slice(start, end).reduce((a, b) => a + b);
+                    midToHigh.push(sum);
+                }
+                midToHigh.push(0);
+                midToHigh.push(0);
+
+                // Normalized midToHigh
+                const midToHighMax = 32 * 255;
+                const midToHighNormalized = midToHigh.map((v) => v / midToHighMax);
+
+                // console.log('midToHigh', midToHighNormalized);
 
                 return {
                     ...data,
                     bass,
-                    mid,
-                    treble,
+                    midToHigh: midToHighNormalized,
                     bassNormalized,
                 };
             });
@@ -97,36 +115,12 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
                     Show Visualizer
                 </label>
 
-                <div>
-                    <h2>Audio Data</h2>
-                    <div>wwwww
-                        <div>
-                            <label>Bass</label>
-                            <div
-                                style={{
-                                    // Based on  bassVelocity
-                                    transform: `
-                                        scale(${(data.bassNormalized - 0.5) * 10}, 1)
-                                    `,
-                                    transition: 'transform 0.05s',
-                                }}
-                            >{
-                                    data.bass
-                                }</div>
-                        </div>
-                        <div>
-                            <label>Mid</label>
-                            <div>{data.mid}</div>
-                        </div>
-                        <div>
-                            <label>Treble</label>
-                            <div>{data.treble}</div>
-                        </div>
-                    </div>
-                </div>
+                <LogoVisualizer
+                    bass={data.bassNormalized}
+                    midToHigh={data.midToHigh}
+                />
             </div>
         </div>
-
     );
 }
 

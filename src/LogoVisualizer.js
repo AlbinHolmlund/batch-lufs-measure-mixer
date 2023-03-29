@@ -1,6 +1,62 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useLayoutEffect, useMemo } from "react";
 import { useAmplifier, useNormalization } from "./hooks";
 import * as d3 from "d3";
+import { motion } from "framer-motion";
+
+const comparePrecision = 4;
+const precision = 2;
+
+const useTransition = (value, divider) => {
+    // Value is an array of values
+    const valueRef = useRef(value);
+    const [transitionValue, setTransitionValue] = useState(value);
+    const transitionValueRef = useRef(transitionValue);
+
+    useEffect(() => {
+        valueRef.current = value;
+    }, [value]);
+
+    useEffect(() => {
+        transitionValueRef.current = transitionValue || 0;
+    }, [transitionValue]);
+
+    useEffect(() => {
+        requestAnimationFrame(() => {
+            if (typeof value === "undefined") {
+                return;
+            }
+
+            if (Array.isArray(valueRef.current)) {
+                let changed = false;
+                const newValue = (valueRef.current || []).map((value, i) => {
+                    const oldValue = transitionValueRef.current[i] || 0;
+                    const v = value || 0;
+                    let newVal = oldValue + ((v - oldValue) / divider);
+                    // Check  diff  betgween old and new
+                    if ((typeof transitionValueRef.current[i] === 'undefined') || (newVal.toFixed(comparePrecision) !== oldValue.toFixed(comparePrecision))) {
+                        changed = true;
+                    }
+
+                    return newVal;
+                });
+                if (changed) {
+                    setTransitionValue(newValue);
+                }
+            } else {
+                const oldValue = transitionValueRef.current || 0;
+                const newValue = oldValue + ((valueRef.current - oldValue) / divider);
+
+                if (newValue.toFixed(comparePrecision) === oldValue.toFixed(comparePrecision)) {
+                    return;
+                }
+
+                setTransitionValue(newValue);
+            }
+        });
+    }, [value, transitionValue, divider]);
+
+    return Array.isArray(transitionValue) ? transitionValue.map((v) => parseFloat(v.toFixed(precision))) : parseFloat(transitionValue.toFixed(precision));
+};
 
 const Icon = ({
     bass,
@@ -13,25 +69,37 @@ const Icon = ({
     const pathRef2 = useRef();
     const pathRef3 = useRef();
 
-    const [hasData, setHasData] = useState(true);
+    // Nomalize each mid to high value to a value between 0 and 1 based on a rolling window and compare it to min and max
+
+    const midToHighValue = useNormalization((midToHighUnnormalized), 25);
+    const midToHigh = useTransition(midToHighValue, 2);
+
+    const offsetMidToHigh = useMemo(() => {
+        return Array.isArray(midToHighUnnormalized) && !midToHighUnnormalized.some((v) => v !== 0) ? 1 : 0;
+    }, [midToHighUnnormalized]);
+
+    const offsetMidToHighValue = useTransition(offsetMidToHigh, 10);
+
 
     // Amplify the bass
-    const amplifiedBass = useAmplifier(bass, 8, 20);
+    const amplifiedBass = useAmplifier(bass || 0, 4, 10);
 
     // Normalize the bass to a value between 0 and 1
-    const bassNormalized = amplifiedBass / 5;
+    const bassNormalized = useTransition(offsetMidToHigh === 1 ? 0.8 : amplifiedBass, 2);
 
-    // Nomalize each mid to high value to a value between 0 and 1 based on a rolling window and compare it to min and max
-    const midToHigh = useNormalization(midToHighUnnormalized, 100);
+    const bassValue = bassNormalized;
+
+    //console.log("offsetMidToHigh", midToHigh, offsetMidToHighValue, Date.now());
 
     // Scale the icon based on the bass
-    const scale = 1 + (-0.5 + bassNormalized) * 0.5;
+    // bassValue  is between -1 and 1 and we want scale to range from 0.7 to 1
+    const scale = Math.min(Math.max(0.6 + (bassValue * 0.4), 0.6), 1);
     const translateX = 12;
     const translateY = 12;
 
     // Use D3 to create the path
-    useEffect(() => {
-        if (!midToHigh || (midToHigh && midToHigh.length === 0) || !pathRef3.current) {
+    useLayoutEffect(() => {
+        if (!pathRef1.current || !pathRef2.current || !pathRef3.current) {
             return;
         }
 
@@ -68,7 +136,7 @@ const Icon = ({
         // const endCoords = [2.05, 10.018];
 
         const width = 24;
-        const height = 24;
+        // const height = 24;
 
         // Start 10% from the left and end 10% from the right
         const startX = width * 0.1;
@@ -85,25 +153,21 @@ const Icon = ({
             })
             .y((d, i) => {
                 const y = ogLineCoords[i];
-
                 /* var y = ogLineCoords[i];
                  y = (d - 0.5) * (i % 2 === 0 ? 1 : -1);
                  return 12 - (y * 4);*/
-                return 12 - (y * d);
+                return (12 - (y * d));
             })
             // Curve
             .curve(d3.curveBasis);
 
         // Create the path
         const applyPath = (pathRef) => {
-            if (hasData) {
-                pathRef.current.style.transition = "";
-            } else {
-                pathRef.current.style.transition = "all 0.01s bezier(0.25, 0.46, 0.45, 0.94)";
-            }
             return d3.select(pathRef.current)
                 // .datum(hasData ? midToHigh : Array(midToHigh.length).fill(1))
-                .datum(midToHigh)
+                .datum(midToHigh.map((v, index) => {
+                    return (v + offsetMidToHighValue) / 2;
+                }))
                 .attr("d", line)
                 .attr("stroke-width", "0.7")
                 // Runded corners
@@ -115,32 +179,30 @@ const Icon = ({
         applyPath(pathRef1);
         applyPath(pathRef2);
         applyPath(pathRef3);
-    }, [midToHigh, hasData]);
-
-
-    useEffect(() => {
-        let testPassed = midToHigh.filter((d) => d !== 0).length > 0;
-        if (testPassed && !hasData) {
-            setHasData(true);
-        } else if (!testPassed && hasData) {
-            setHasData(false);
-        }
-    }, [midToHigh]);
+    }, [midToHigh, offsetMidToHighValue, pathRef1, pathRef2, pathRef3]);
 
 
     return (
-        <div>
+        <motion.div
+            className="svg-container"
+            // Animate in animatePresence
+            style={{
+                display: "inline-block"
+            }}
+            {...props}
+        >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 width="24"
                 height="24"
+                // Keep ratio
+                preserveAspectRatio="xMidYMid meet"
                 style={{
                     width: "300px",
                     height: "300px",
                     ...(style || {}),
                 }}
-                {...props}
             >
 
                 <defs>
@@ -157,10 +219,9 @@ const Icon = ({
                     // Scale the icon based on the bass
                     transform={scale && `
                         translate(${translateX}, ${translateY}) 
-                        scale(${Math.min(1, scale)})
+                        scale(${scale})
                         translate(${-translateX}, ${-translateY})
                     `}
-                    transition="transform 0.25s ease-in-out"
                 >
                     <ellipse
                         cx="12.029"
@@ -205,7 +266,7 @@ const Icon = ({
                     ></path>
                 </g>
             </svg>
-        </div >
+        </motion.div>
     );
 };
 

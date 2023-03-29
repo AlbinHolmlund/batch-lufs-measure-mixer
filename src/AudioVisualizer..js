@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import LogoVisualizer from './LogoVisualizer';
+import equal from 'fast-deep-equal';
+import { Context } from './Context';
 
 const AudioVisualizer = ({ audioContext, ...props }) => {
+    const ctx = useContext(Context);
+
     // To test reading the data we start by just outputting text info about the different frequencies
 
     const [analyser, setAnalyser] = useState(null);
@@ -56,7 +60,7 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
 
                 // Noramlize the data
                 const bassMax = 32 * 255;
-                const bassNormalized = bass / bassMax;
+                const bassNormalized = bass; // / bassMax;
 
                 /*const mid = dataArray.slice(32, 64).reduce((a, b) => a + b);
                 const treble = dataArray.slice(64, 128).reduce((a, b) => a + b);*/
@@ -81,12 +85,22 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
 
                 // console.log('midToHigh', midToHighNormalized);
 
-                return {
+                let newObject = {
                     ...data,
-                    bass,
-                    midToHigh: midToHighNormalized,
-                    bassNormalized,
+                    bass: Math.round(bass),
+                    midToHigh: midToHighNormalized.map((v) => Math.round(v * 100) / 100),
+                    bassNormalized: Math.round(bassNormalized * 100) / 100,
                 };
+
+                // Compare the new data to the old data
+                // If the data is the same, don't update the state
+                // This prevents the component from re-rendering
+
+                if (equal(data, newObject)) {
+                    return data;
+                } else {
+                    return newObject;
+                }
             });
 
             // Draw the data
@@ -109,16 +123,28 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
                 <label>
                     <input
                         type="checkbox"
-                        checked={showVisualizer}
-                        onChange={(e) => setShowVisualizer(e.target.checked)}
+                        checked={ctx.data.showVisualizer}
+                        onChange={(e) => {
+                            ctx.setData({
+                                ...ctx.data,
+                                showVisualizer: e.target.checked,
+                                // bass: data.bassNormalized,
+                                // midToHigh: data.midToHigh,
+                            })
+                        }}
                     />
                     Show Visualizer
                 </label>
 
-                <LogoVisualizer
-                    bass={data.bassNormalized}
-                    midToHigh={data.midToHigh}
-                />
+                {ctx.data.showVisualizer && (
+                    <div>
+                        <LogoVisualizer
+                            layoutId="logo-visualizer"
+                            bass={data.bassNormalized}
+                            midToHigh={data.midToHigh}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -29,8 +29,14 @@ const useAmplifier = (initialValue, windowSize, factor) => {
     const max = Math.max(...values);
 
     // Amplify the current value based on the difference between the rolling minimum and maximum
-    const amplifiedValue = initialValue + (max - min) * factor;
-    // Test: 0.8 + (1 - 0.4) * 20
+    // Get mid value
+    const mid = min + ((max - min) / 2);
+    // Check how far from mid the current value is
+    const distanceFromMid = initialValue - mid;
+    // Normalize the distance from mid
+    const normalizedDistanceFromMid = distanceFromMid / mid; // This will be a value between -1 and 1
+    // Amplify the normalized distance from mid
+    const amplifiedValue = normalizedDistanceFromMid * factor;
 
     return amplifiedValue;
 };

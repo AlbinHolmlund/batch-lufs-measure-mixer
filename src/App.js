@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import moment from 'moment';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -10,8 +10,26 @@ import AudioFilePicker from './AudioFilePicker';
 import { LanguageProvider, useLanguage } from './useLanguage';
 
 import translations from './translations.json';
-import logo from './favicon.svg';
+import LogoVisualizer from './LogoVisualizer';
 
+import { Provider, Context } from './Context';
+
+const Logo = ({ ...props }) => {
+  const ctx = useContext(Context);
+
+  return !ctx.data.showVisualizer && (
+    <LogoVisualizer
+      {...props}
+      layoutId="logo-visualizer"
+      bass={ctx.data.bass || 0}
+      midToHigh={ctx.data.midToHigh || Array(10).fill(0)}
+      style={{
+        width: 100,
+        height: 100
+      }}
+    />
+  );
+};
 
 const Header = styled.a`
   position: fixed;
@@ -25,12 +43,8 @@ const Header = styled.a`
 
   padding: 15px;
 
-  &:before {
+  ${Logo} {
     content: '';
-    background-image: url(${logo});
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: left center;
     height: 50px;
     padding-left: 60px;
     font-size: 0.8rem;
@@ -237,24 +251,28 @@ const LocalStorageText = () => {
 function App() {
   return (
     <React.StrictMode>
-      <LanguageProvider translations={translations}>
-        <ThemeProvider theme={darkTheme}>
-          <CssBaseline />
-          <CssGlobals />
+      <Provider>
+        <LanguageProvider translations={translations}>
+          <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
+            <CssGlobals />
 
-          <div className="App">
-            <Header
-              href="https://github.com/AlbinHolmlund/batch-lufs-measure-mixer"
-              title="Batch LUFS Measure Mixer"
-              target="_blank"
-            />
-            <AudioFilePicker />
-            <LocalStorageText />
-          </div>
+            <div className="App">
+              <Header
+                href="https://github.com/AlbinHolmlund/batch-lufs-measure-mixer"
+                title="Batch LUFS Measure Mixer"
+                target="_blank"
+              >
+                <Logo />
+              </Header>
+              <AudioFilePicker />
+              <LocalStorageText />
+            </div>
 
-          <InfoMessage />
-        </ThemeProvider>
-      </LanguageProvider>
+            <InfoMessage />
+          </ThemeProvider>
+        </LanguageProvider>
+      </Provider>
     </React.StrictMode>
   );
 }

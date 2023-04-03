@@ -13,7 +13,18 @@ import { LoudnessMeter } from '@domchristie/needles';
 import { useLanguage } from './useLanguage';
 
 import AudioVisualizer from './AudioVisualizer.';
+import useLocalStorageState from './useLocalStorageState';
 
+const closest = (el, selector) => {
+    // Walk up the DOM tree until we find a node that matches the selector or we reach the top
+    while (el) {
+        if (el.matches(selector)) {
+            return el;
+        }
+        el = el.parentElement;
+    }
+    return null;
+};
 
 const translateVolume = (volumeInDB) => {
     // Convert db into gain
@@ -48,22 +59,6 @@ const DomInjector = ({ inject, children, ...props }) => {
         </>
     );
 }
-
-const useLocalStorageState = (key, defaultValue) => {
-    const [state, setState] = useState(() => {
-        const valueInLocalStorage = window.localStorage.getItem(key);
-        if (valueInLocalStorage) {
-            return JSON.parse(valueInLocalStorage);
-        }
-        return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
-    });
-
-    useEffect(() => {
-        window.localStorage.setItem(key, JSON.stringify(state));
-    }, [key, state]);
-
-    return [state, setState];
-};
 
 const MixerContainer = styled.div`
     display: flex;
@@ -124,10 +119,11 @@ const MixerTrack = styled(({ className, children, ...props }) => {
     return (
         <motion.div
             // Make draggable
-            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            dragElastic={0.1}
-            dragMomentum={false}
-            className={className} {...props}
+            // drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            // dragElastic={0.1}
+            // dragMomentum={false}
+            className={'mixer-track ' + className}
+            {...props}
             style={{
                 zoom: cardsZoomLevel
             }}
@@ -146,7 +142,7 @@ const MixerTrack = styled(({ className, children, ...props }) => {
     margin: 10px;
     color: #000;
     background-color: #fff;
-    //transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
     
     min-height: 100%;
     flex: 1 1 auto 100%;
@@ -154,8 +150,12 @@ const MixerTrack = styled(({ className, children, ...props }) => {
     &:hover{
         box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
     }
-    &:focus, &:focus-within{
+    /*&:focus, &:focus-within, &.active{
         box-shadow: 0 0 0 4px #fff !important;
+    }*/
+    &.active{
+        
+        box-shadow: 0 0 0 4px lime !important;
     }
 
     button{
@@ -290,7 +290,7 @@ const MixerTrackVolume = styled.div`
     font-weight: bold;
 `;
 
-const MixerTrackVolumeSlider = styled(({ file, className, onChange, children }) => {
+const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, volumeDependantChildren, ...props }) => {
     const [volumeInDB, setVolumeInDB] = useLocalStorageState((file && file.name || 'none') + '_volume', 0);
 
     useEffect(() => {
@@ -300,6 +300,10 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children }) 
     return (
         <div className={className}>
             {children}
+            {volumeDependantChildren && volumeDependantChildren({
+                volumeInDB,
+                setVolumeInDB
+            })}
             <input
                 type="range"
                 orient="vertical"
@@ -354,6 +358,7 @@ const formatLufs = (lufs) => {
     // Example: 1.0, 0.5, 0.0, -0.5, -1.0, 7.6
     return (Math.round(lufs * 10) / 10).toFixed(1);
 }
+
 
 let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
     const loudnessMeterRef = useRef();
@@ -427,6 +432,183 @@ let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
     );
 };
 
+
+const getLufs = async (arrayBuffer) => {
+    // Create a new audio context
+    // Create a new offline context
+    const audioCtx0 = new AudioContext();
+
+    // Decode the audio data
+    const audioBuffer = await decodeAudioData(arrayBuffer, audioCtx0);
+
+    console.log('audioBuffer', audioBuffer)
+
+    var audioCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.duration * audioBuffer.sampleRate,
+        audioBuffer.sampleRate
+    );
+
+    // Create a new audio buffer source
+    var source = audioCtx.createBufferSource();
+
+    // Set the audio buffer to the source
+    source.buffer = audioBuffer;
+
+    // Create a new loudness meter
+    var loudnessMeter = new LoudnessMeter({
+        source: source,
+        modes: ['integrated'],
+        workerUri: window.PUBLIC_URL + '/needles-worker.js'
+    });
+
+    // Start the loudness meter
+    loudnessMeter.start();
+
+    const lufs = await new Promise((resolve, reject) => {
+        loudnessMeter.on('dataavailable', function (event) {
+            // event.data.mode // momentary | short-term | integrated
+            // short-term means the last 3 seconds
+            // momentary means the last 400ms
+            // event.data.value // -14
+            // console.log(event.data.mode, event.data.value)
+            if (event.data.mode === 'integrated') {
+                console.log('lufs', event.data.value)
+                resolve(event.data.value);
+            }
+        });
+    });
+
+    return lufs;
+};
+
+async function arrayBufferToHash(buffer) {
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+
+const SpotifyAnalyser = ({ track, updateGain, ...props }) => {
+    /*
+        0. Wait for button click
+        1. Get the track
+        2. Use needles offline to get the LUFS
+        3. Use the LUFS to set the gain
+    */
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [lufs, setLufs] = useState(null);
+    const [gain, setGain] = useState(false);
+    const [forceGain, setForceGain] = useState(false);
+
+    useEffect(() => {
+        if (track && forceGain) {
+            setLoading(true);
+            setError(null);
+            setLufs(null);
+            setGain(false);
+
+            (async () => {
+                try {
+                    await new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Use exportAudioBuffer to get the LUFS
+                    const arrayBuffer = track.audioData;
+
+                    // Store in localStorage based on hash of blob
+                    const hash = await arrayBufferToHash(arrayBuffer);
+
+                    // Check if the hash exists in localStorage
+                    const lufs = false; //localStorage.getItem(hash);
+                    if (lufs) {
+                        console.log('Obtaining LUFS for arrayBuffer from localStorage', arrayBuffer);
+                        setLufs(lufs);
+                        setLoading(false);
+
+                        if (updateGain) {
+                            // Use lufs to calculate gain reduction for spotify (-14 LUFS)
+                            const gainReduction = -14 - lufs;
+
+                            // Update the gain
+                            updateGain(gainReduction);
+                        }
+                        return;
+                    } else {
+                        console.log('Obtaining LUFS for arrayBuffer', arrayBuffer);
+                        const lufs = await getLufs(arrayBuffer);
+
+                        // Use lufs to calculate gain reduction for spotify (-14 LUFS)
+                        console.log('lufs', lufs);
+                        const gainReduction = -14 - lufs;
+
+                        setGain(parseFloat(gainReduction.toFixed(2)));
+                        setLufs(parseFloat(lufs.toFixed(2)));
+                        setLoading(false);
+                        if (updateGain) {
+
+                            // Update the gain
+                            updateGain(parseFloat(gainReduction.toFixed(2)))
+                        }
+
+                        // Store in localStorage
+                        localStorage.setItem(hash, lufs);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    setError(e);
+                    setLoading(false);
+                }
+            })();
+        }
+    }, [track, forceGain]);
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 55 + '%',
+            }}
+        >
+
+            <legend
+                style={{
+                    fontSize: '0.7em',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setForceGain(!forceGain);
+                    setLoading(false);
+                    setError(null);
+                    setLufs(null);
+                    setGain(false);
+                }}
+            >
+                <span style={{
+                    // Color is spotify green (darker) if forceGain is true otherwise red
+                    color: forceGain ? '#1db954' : '#b91d47',
+
+                }}>{
+                        forceGain ? 'Deactivate' : 'Activate'
+                    } <br />
+                    Normalization (Spotify)</span> <br />
+                {loading && <div>Loading...</div>}
+                {error && <div>Error: {error.message}</div>}
+                {lufs && <div>LUFS: {lufs}</div>}
+                {gain && <div>Gain: {gain}</div>}
+            </legend>
+        </div>
+    );
+};
+
 MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
     position: absolute;
     top: 0;
@@ -463,7 +645,11 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
 
 const decodeAudioData = (arrayBuffer, audioCtx) => {
     return new Promise((resolve, reject) => {
-        audioCtx.decodeAudioData(arrayBuffer, resolve, reject);
+        audioCtx.decodeAudioData(arrayBuffer.slice(0), function (buffer) {
+            resolve(buffer);
+        }, function (e) {
+            reject(e);
+        });
     });
 };
 
@@ -478,7 +664,7 @@ const exportAudioBuffer = async (arrayBuffer, fileName, volumeInDB, returnValue)
 
     let offlineCtx = new OfflineAudioContext(
         audioBuffer.numberOfChannels, // 2
-        audioBuffer.length, // 44100 * 10
+        audioBuffer.duration * audioBuffer.sampleRate, // 44100
         audioBuffer.sampleRate, // 44100
     );
     let bufferSource = offlineCtx.createBufferSource();
@@ -514,7 +700,7 @@ const exportAudioBuffer = async (arrayBuffer, fileName, volumeInDB, returnValue)
 };
 
 // Only one mixer at a time, and it connects to the audio context via props. The volume is based on dB, and the slider is based on a linear scale. Apply volume to the audio as a step before sending it to the audio context.
-const AudioMixer = ({ files, audioContext, otherTools }) => {
+const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
     const { __ } = useLanguage();
 
     // Tracks contains a gain node and an audio buffer source node
@@ -614,14 +800,21 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
             // activeTrackRef.current.muteNode.disconnect();
             // activeTrackRef.current = null;
             activeTrackRef.current.mute();
+            closest(activeTrackRef.current.audio, '.mixer-track').classList.remove('active');
         }
 
         // Connect
         // track.muteNode.connect(audioContext.destination);
         track.unmute();
+        // Play if not playing
+        if (track.audio.paused) {
+            track.audio.play();
+        }
 
         // Set the active track ref
         activeTrackRef.current = track;
+
+        closest(track.audio, '.mixer-track').classList.add('active');
 
         // Set analyser node to this
         // analyserNode.current = track.gainNode;
@@ -631,6 +824,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
         // Disconnect
         // track.muteNode.disconnect();
         track.mute();
+        closest(track.audio, '.mixer-track').classList.remove('active');
 
         // Set the active track ref
         activeTrackRef.current = null;
@@ -641,7 +835,6 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
             <div>
                 <AudioVisualizer
                     audioContext={audioContext}
-                    otherTools={otherTools}
                 />
 
                 {tracks && tracks.length ? (
@@ -713,12 +906,25 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                             //onMouseLeave={() => handleStop(track)}
                             // Make focusable so that we can use the keyboard to play and stop
                             tabIndex={0}
+                            className={activeTrackRef.current === track ? 'active' : ''}
                             onFocus={() => {
                                 if (activeTrackRef.current !== track) {
                                     handlePlay(track);
                                 }
                             }}
+                            onDoubleClick={() => {
+                                if (activeTrackRef.current === track) {
+                                    handleStop(track);
+                                } else {
+                                    handlePlay(track);
+                                }
+                                // Blur actively focused element
+                                document.activeElement.blur();
+                            }}
                             onBlur={() => {
+                                if (keepFocus) {
+                                    return;
+                                }
                                 if (activeTrackRef.current === track) {
                                     handleStop(track);
                                 }
@@ -738,6 +944,18 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                         // If you want to use a linear scale, then you can use this:
 
                                         // const volumeInLinearScale = Math.pow(10, volumeInDB / 20);
+                                    }}
+                                    volumeDependantChildren={({ volumeInDB, setVolumeInDB }) => {
+                                        return (
+                                            !highPerfMode && (
+                                                <SpotifyAnalyser
+                                                    track={track}
+                                                    updateGain={(newVolumeInDB) => {
+                                                        setVolumeInDB(newVolumeInDB);
+                                                    }}
+                                                />
+                                            )
+                                        );
                                     }}
                                 >
                                     {!highPerfMode && (

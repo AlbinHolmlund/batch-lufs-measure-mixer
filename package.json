@@ -2,7 +2,7 @@
   "name": "batch-lufs-measure-mixer",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://skrap.info/audio_unstable",
+  "homepage": "https://skrap.info/audio",
   "main": "public/electron.js",
   "icon": "public/icons/android-chrome-512x512.png",
   "dependencies": {

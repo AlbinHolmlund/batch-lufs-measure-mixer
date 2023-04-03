@@ -8,8 +8,16 @@ const getPort = require('get-port'); // Last version before switching to ESM is 
 global.__dirname = app.getAppPath();
 console.log('window.__dirname', global.__dirname);
 
+// Set audioPath to path from homepage key in package.json
+const homepage = require('../package.json').homepage;
+
+// Homepage is for example https://skrap.info/audio_unstable but we want /audio_unstable
+
+// Remove the https://skrap.info
+const audioPath = homepage.replace('https://skrap.info', '');
+
 // Cache the result into a file, so that the port is the same on every run
-const cacheResult = async (key, fn) => {
+const cacheResult = async (key, fn, force = false) => {
     const cacheFile = path.join(__dirname, 'cache.json');
 
     // Read cache file
@@ -19,7 +27,7 @@ const cacheResult = async (key, fn) => {
     } catch (err) { }
 
     // Check if the key exists
-    if (cache[key]) {
+    if (cache[key] && !force) {
         return cache[key];
     }
 
@@ -57,7 +65,7 @@ async function startFileServer() {
     // Serve the build folder as /audio/ (for production)
     app.get('*', (req, res) => {
         console.log('req.path', req.path);
-        const filePath = path.join(__dirname, req.path.replace('audio', '../build/'));
+        const filePath = path.join(__dirname, req.path.replace(audioPath, '../build/'));
         console.log('filePath', filePath);
 
         // Check if the file exists
@@ -81,14 +89,43 @@ async function startFileServer() {
 }
 
 async function createWindow() {
+    /*
+        Keep windowSize and position in cache
+        https://stackoverflow.com/questions/5392344/saving-and-restoring-window-size-and-position-using-electron
+    */
+    const cacheKey = 'windowSize';
+    const cache = await cacheResult(cacheKey, async () => {
+        return {
+            width: 800,
+            height: 600,
+            x: 0,
+            y: 0,
+        };
+    });
+
+    // Create the browser window.
     const win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: cache.width,
+        height: cache.height,
+        x: cache.x,
+        y: cache.y,
         // Set background color to white
         backgroundColor: '#0e1928',
         webPreferences: {
             nodeIntegration: true,
         },
+    });
+
+    // Save windowSize and position in cache
+    win.on('close', async () => {
+        const cache = await cacheResult(cacheKey, async () => {
+            return {
+                width: win.getSize()[0],
+                height: win.getSize()[1],
+                x: win.getPosition()[0],
+                y: win.getPosition()[1],
+            };
+        }, true);
     });
 
     // Add menu item to clearCache
@@ -142,9 +179,9 @@ async function createWindow() {
         // Start the file server
         const port = await startFileServer();
         // Load the index.html file
-        win.loadURL(`http://localhost:${port}/audio/index.html`);
+        win.loadURL(`http://localhost:${port}${audioPath}/index.html`);
     } else {
-        win.loadURL('http://localhost:3000/audio');
+        win.loadURL('http://localhost:3000' + audioPath);
     }
 
     // Add shortcut to reload the page

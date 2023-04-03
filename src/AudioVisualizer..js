@@ -3,36 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import LogoVisualizer from './LogoVisualizer';
 import equal from 'fast-deep-equal';
 import { Context } from './Context';
-
-const useLocalStorage = (key, initialValue) => {
-    const [storedValue, setStoredValue] = useState(() => {
-        try {
-            const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-            console.log(error);
-            return initialValue;
-        }
-    });
-
-    const setValue = value => {
-        try {
-            const valueToStore =
-                value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-
-            // Save to local storage
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-
-            // Save to context
-            setStoredValue(valueToStore);
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    return [storedValue, setValue];
-};
+import useLocalStorage from './useLocalStorageState';
 
 const AudioVisualizer = ({ audioContext, ...props }) => {
     const ctx = useContext(Context);
@@ -42,18 +13,8 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
     const [analyser, setAnalyser] = useState(null);
     const [bufferLength, setBufferLength] = useState(null);
     const [dataArray, setDataArray] = useState(null);
-    const [showVisualizer, setShowVisualizer] = useLocalStorage(
-        'showVisualizer',
-        true
-    );
-    const [data, setData] = useState({});
 
-    useEffect(() => {
-        ctx?.setData((data) => ({
-            ...data,
-            showVisualizer: showVisualizer,
-        }));
-    }, [showVisualizer]);
+    const [data, setData] = useState({});
 
     useEffect(() => {
         if (!audioContext) {
@@ -77,17 +38,10 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
             return;
         }
 
-        // Connect the analyser to the audioContext
-        if (!showVisualizer) {
-            /*analyser.disconnect();
-            audioContext.target = audioContext;
-            return;*/
-        }
-
         audioContext.target = analyser;
         analyser.connect(audioContext.destination);
 
-        if (!showVisualizer) {
+        if (!ctx?.data?.showVisualizer) {
             return;
         }
 
@@ -155,46 +109,28 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
             analyser.disconnect();
             cancelAnimationFrame(frame);
         };
-    }, [analyser, audioContext, showVisualizer]);
+    }, [analyser, audioContext, ctx?.data?.showVisualizer]);
 
     return (
         <div>
-            <div>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={showVisualizer}
-                        onChange={(e) => {
-                            setShowVisualizer(e.target.checked);
-                            ctx.setData({
-                                ...ctx.data,
-                                showVisualizer: e.target.checked,
-                                // bass: data.bassNormalized,
-                                // midToHigh: data.midToHigh,
-                            })
-                        }}
-                    />
-                    Show Visualizer
-                </label>
-
-                <AnimatePresence>
-                    {showVisualizer && (
-                        <motion.div
-                            key="logo-visualizer-container"
-                            initial={{ height: 0 }}
-                            animate={{ height: 'auto' }}
-                            exit={{ height: 0 }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <LogoVisualizer
-                                layoutId="logo-visualizer"
-                                bass={data.bassNormalized}
-                                midToHigh={data.midToHigh}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+            <AnimatePresence>
+                {ctx?.data?.showVisualizer && (
+                    <motion.div
+                        key="logo-visualizer-container"
+                        initial={{ height: 0 }}
+                        animate={{ height: 'auto' }}
+                        exit={{ height: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <LogoVisualizer
+                            layoutId="logo-visualizer"
+                            layout
+                            bass={data.bassNormalized}
+                            midToHigh={data.midToHigh}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

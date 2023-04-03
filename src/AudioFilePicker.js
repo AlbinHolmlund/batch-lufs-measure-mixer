@@ -1,13 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import styled from 'styled-components';
 // import Flag from "react-flags";
 import AudioMixer from './AudioMixer';
 import { cacheFiles } from './FileCache';
 import Button from '@mui/material/Button';
+// Checkbox
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 // Select dropdown
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Tooltip from '@mui/material/Tooltip';
 import { useLanguage } from './useLanguage';
+import useLocalStorage from './useLocalStorageState';
+
+import { Context } from './Context';
 
 const ClearButton = styled.button`
     background-color: transparent;
@@ -142,11 +149,42 @@ const Toolbar = styled.div`
     }
 `;
 
+const ShowVisualizerToggle = () => {
+    const ctx = useContext(Context);
+    const [showVisualizer, setShowVisualizer] = useLocalStorage(
+        'showVisualizer',
+        true
+    );
+
+    useEffect(() => {
+        console.log('showVisualizer', showVisualizer);
+        ctx?.setData((data) => ({
+            ...data,
+            showVisualizer: showVisualizer,
+        }));
+    }, [showVisualizer]);
+
+    return (
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked={showVisualizer}
+                    onChange={(e) => setShowVisualizer(e.target.checked)}
+                    name="showVisualizer"
+                    color="primary"
+                />
+            }
+            label="Show visualizer"
+        />
+    );
+};
+
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
     const { __, setLanguage, currentLanguage } = useLanguage();
     const [localStorageFiles, setLocalStorageFiles] = useState(null);
     const [files, setFiles] = useState([]);
+    const [keepFocus, setKeepFocus] = useLocalStorage('keepFocus', false);
 
     const [audioContext, setAudioContext] = useState(null);
 
@@ -210,6 +248,33 @@ const AudioFilePicker = () => {
         // Async test
         setFiles(filesAsDataUri);
     }
+
+    useEffect(() => {
+        // In dev mode, trigger handleFileChange with a file loaded from dummyFileUrl
+        if (0 && window.location.href.indexOf(':3000') > -1) {
+            window.localStorage.removeItem('files');
+            const dummyFileUrl = '/audio/demo.wav';
+            const handleOnClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                fetch(dummyFileUrl).then((response) => response.arrayBuffer()).then((response) => {
+                    const file = new File([response], 'demo.wav', { type: 'audio/wav' });
+                    handleFileChange({
+                        target: {
+                            files: [file]
+                        }
+                    });
+                });
+
+                document.querySelector('html').removeEventListener('click', handleOnClick);
+            };
+            document.querySelector('html').addEventListener('click', handleOnClick);
+            return () => {
+                document.querySelector('html').removeEventListener('click', handleOnClick);
+            };
+        }
+    }, []);
 
     useEffect(() => {
         if (localStorageFiles) {
@@ -278,6 +343,25 @@ const AudioFilePicker = () => {
                     </Button>
 
                     <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
+
+                    <br />
+
+                    <Tooltip
+                        title={
+                            keepFocus ? __('Keep playing audio when clicking outside of the box') : __('Stop playing audio when clicking outside of the box')
+                        }
+                    >
+                        <Button
+                            onClick={() => {
+                                setKeepFocus(!keepFocus);
+                            }}
+                            color="primary"
+                        >
+                            {__('Keep focus: ')} {keepFocus ? __('On') : __('Off')}
+                        </Button>
+                    </Tooltip>
+
+                    <ShowVisualizerToggle />
                 </Toolbar>
             )}
 
@@ -285,6 +369,7 @@ const AudioFilePicker = () => {
                 <AudioMixer
                     files={files}
                     audioContext={audioContext}
+                    keepFocus={keepFocus}
                 />
             )}
         </div>

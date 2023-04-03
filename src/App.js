@@ -8,28 +8,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Alert from '@mui/material/Alert';
 import AudioFilePicker from './AudioFilePicker';
 import { LanguageProvider, useLanguage } from './useLanguage';
+import { LayoutGroup } from 'framer-motion';
+import { Context } from './Context';
 
 import translations from './translations.json';
 import LogoVisualizer from './LogoVisualizer';
 
-import { Provider, Context } from './Context';
-
-const Logo = ({ ...props }) => {
-  const ctx = useContext(Context);
-
-  return !ctx.data.showVisualizer && (
-    <LogoVisualizer
-      {...props}
-      layoutId="logo-visualizer"
-      bass={ctx.data.bass || 0}
-      midToHigh={ctx.data.midToHigh || Array(10).fill(0)}
-      style={{
-        width: 100,
-        height: 100
-      }}
-    />
-  );
-};
 
 const Header = styled.a`
   position: fixed;
@@ -43,8 +27,7 @@ const Header = styled.a`
 
   padding: 15px;
 
-  ${Logo} {
-    content: '';
+  ${LogoVisualizer} {
     height: 50px;
     padding-left: 60px;
     font-size: 0.8rem;
@@ -66,6 +49,13 @@ const CssGlobals = createGlobalStyle`
   body {
     background-color: #0a1929 !important;
     color: #fff;
+    padding-top: 100px;
+  }
+
+  .MuiTooltip-popper {
+    .MuiTooltip-tooltip {
+      background-color: #000;
+    }
   }
 
   .pulse {
@@ -249,31 +239,40 @@ const LocalStorageText = () => {
 };
 
 function App() {
+  const ctx = useContext(Context);
   return (
-    <React.StrictMode>
-      <Provider>
-        <LanguageProvider translations={translations}>
-          <ThemeProvider theme={darkTheme}>
-            <CssBaseline />
-            <CssGlobals />
+    <LanguageProvider translations={translations}>
+      <ThemeProvider theme={darkTheme}>
+        <LayoutGroup>
+          <CssBaseline />
+          <CssGlobals />
 
-            <div className="App">
-              <Header
-                href="https://github.com/AlbinHolmlund/batch-lufs-measure-mixer"
-                title="Batch LUFS Measure Mixer"
-                target="_blank"
-              >
-                <Logo />
-              </Header>
-              <AudioFilePicker />
-              <LocalStorageText />
-            </div>
+          <div className="App">
+            <Header
+              href="https://github.com/AlbinHolmlund/batch-lufs-measure-mixer"
+              title="Batch LUFS Measure Mixer"
+              target="_blank"
+            >
+              {!ctx.data.showVisualizer && (
+                <LogoVisualizer
+                  layoutId="logo-visualizer"
+                  layout
+                  bass={ctx.data.bass || 0}
+                  midToHigh={ctx.data.midToHigh || Array(10).fill(0)}
+                  style={{
+                    width: 100,
+                    height: 100
+                  }}
+                />)}
+            </Header>
+            <AudioFilePicker />
+            <LocalStorageText />
+          </div>
 
-            <InfoMessage />
-          </ThemeProvider>
-        </LanguageProvider>
-      </Provider>
-    </React.StrictMode>
+          <InfoMessage />
+        </LayoutGroup>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }
 

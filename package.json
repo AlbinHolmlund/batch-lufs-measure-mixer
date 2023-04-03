@@ -2,7 +2,7 @@
   "name": "batch-lufs-measure-mixer",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://skrap.info/audio",
+  "homepage": "https://skrap.info/audio_unstable",
   "main": "public/electron.js",
   "icon": "public/icons/android-chrome-512x512.png",
   "dependencies": {
@@ -32,6 +32,7 @@
     "react-nbsp": "^1.2.4",
     "react-scripts": "5.0.1",
     "styled-components": "^5.3.9",
+    "universalify": "^2.0.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

@@ -217,11 +217,11 @@ const Icon = ({
                 </defs>
                 <g
                     // Scale the icon based on the bass
-                    transform={scale && `
+                    transform={scale ? `
                         translate(${translateX}, ${translateY}) 
                         scale(${scale})
                         translate(${-translateX}, ${-translateY})
-                    `}
+                    ` : ""}
                 >
                     <ellipse
                         cx="12.029"

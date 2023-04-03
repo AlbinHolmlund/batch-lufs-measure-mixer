@@ -530,48 +530,59 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                     file = await file;  // New async approach
 
                     // Create a gain node
-                    const gainNode = audioContext.createGain();
+                    try {
+                        const gainNode = audioContext.createGain();
 
-                    // Apply the file data to a new audio dom element and then connect it to the gain node
-                    // file.dataUrl
-                    const audio = new Audio();
-                    audio.src = file.dataUri;
-                    audio.controls = true;
-                    audio.loop = true;
-                    audio.play();
-                    const audioSource = audioContext.createMediaElementSource(audio);
-                    audioSource.connect(gainNode);
+                        // Apply the file data to a new audio dom element and then connect it to the gain node
+                        // file.dataUrl
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.loop = true;
 
-                    // Connect gainNode to a special node that we will use to mute the track
-                    const muteNode = audioContext.createGain();
-                    muteNode.gain.value = 0; // 0 = muted, 1 = unmuted
-                    gainNode.connect(muteNode);
+                        // Add source
+                        const source = document.createElement('source');
+                        source.src = file.dataUri;
+                        source.type = 'audio/wav';
+                        audio.appendChild(source);
 
-                    // Connect the mute node to the audio context destination
-                    muteNode.connect(audioContext.target || audioContext.destination);
+                        audio.play();
+                        const audioSource = audioContext.createMediaElementSource(audio);
+                        audioSource.connect(gainNode);
 
-                    return {
-                        index,
-                        name: file.name,
-                        // Cloned buffer data
-                        audioData: file.data,
-                        // audioBuffer: await audioContext.decodeAudioData(file.data),
-                        audioBufferSourceNode: audioSource,
-                        audio,
-                        gainNode,
-                        muteNode,
-                        mute: () => {
-                            // Ramp down the gain value to 0
-                            muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
-                            // Other ramps are available
-                            // muteNode.gain.exponentialRampToValueAtTime(0, audioContext.currentTime + 0.1);
-                            // muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
-                        },
-                        unmute: () => {
-                            // Ramp up the gain value to 1
-                            muteNode.gain.setTargetAtTime(1, audioContext.currentTime, 0.1);
-                        }
-                    };
+                        // Connect gainNode to a special node that we will use to mute the track
+                        const muteNode = audioContext.createGain();
+                        muteNode.gain.value = 0; // 0 = muted, 1 = unmuted
+                        gainNode.connect(muteNode);
+
+                        // Connect the mute node to the audio context destination
+                        muteNode.connect(audioContext.target || audioContext.destination);
+
+                        return {
+                            index,
+                            name: file.name,
+                            // Cloned buffer data
+                            audioData: file.data,
+                            // audioBuffer: await audioContext.decodeAudioData(file.data),
+                            audioBufferSourceNode: audioSource,
+                            audio,
+                            gainNode,
+                            muteNode,
+                            mute: () => {
+                                // Ramp down the gain value to 0
+                                muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
+                                // Other ramps are available
+                                // muteNode.gain.exponentialRampToValueAtTime(0, audioContext.currentTime + 0.1);
+                                // muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
+                            },
+                            unmute: () => {
+                                // Ramp up the gain value to 1
+                                muteNode.gain.setTargetAtTime(1, audioContext.currentTime, 0.1);
+                            }
+                        };
+                    } catch (e) {
+                        console.log('error', e);
+                    }
+
                 });
 
                 // const fileNodes = await Promise.all(fileNodesPromises);

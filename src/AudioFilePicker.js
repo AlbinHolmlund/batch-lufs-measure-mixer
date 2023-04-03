@@ -182,17 +182,21 @@ const AudioFilePicker = () => {
         try {
             (async () => {
                 // Cache the files
-                const files = await Promise.all(filesAsDataUri);
-                const urls = await cacheFiles(files.map((file) => {
-                    return {
-                        name: file.name,
-                        dataUri: file.dataUri,
-                        data: file.data
-                    };
-                }))
-                console.log('done', urls);
-                // Save in localStorage
-                localStorage.setItem('files', JSON.stringify(urls));
+                try {
+                    const files = await Promise.all(filesAsDataUri);
+                    const urls = await cacheFiles(files.map((file) => {
+                        return {
+                            name: file.name,
+                            dataUri: file.dataUri,
+                            data: file.data
+                        };
+                    }))
+                    console.log('done', urls);
+                    // Save in localStorage
+                    localStorage.setItem('files', JSON.stringify(urls));
+                } catch (e) {
+                    console.log(e);
+                }
             })();
         } catch (e) {
             console.log(e);

@@ -52,6 +52,19 @@ export async function cacheFiles(fileList) {
     ]*/
     return new Promise((resolve, reject) => {
         // Open cache
+        if (!caches) {
+            // Simulate cache response
+            const promises = fileList.map(async (file) => {
+                return file.name;
+            });
+            Promise.all(promises).then((fileNames) => {
+                // Resolve
+                resolve(fileNames);
+            }).catch((err) => {
+                reject(err);
+            });
+            return;
+        }
         caches.open('file-cache5').then((cache) => {
             // Add files to cache
             const promises = fileList.map(async (file) => {

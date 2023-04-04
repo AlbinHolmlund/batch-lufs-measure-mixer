@@ -123,6 +123,7 @@ const AudioVisualizer = ({ audioContext, ...props }) => {
                         transition={{ duration: 0.5 }}
                     >
                         <LogoVisualizer
+                            key="logo-visualizer"
                             layoutId="logo-visualizer"
                             layout
                             bass={data.bassNormalized}

@@ -255,6 +255,7 @@ function App() {
             >
               {!ctx.data.showVisualizer && (
                 <LogoVisualizer
+                  key="logo-visualizer"
                   layoutId="logo-visualizer"
                   layout
                   bass={ctx.data.bass || 0}
@@ -265,7 +266,9 @@ function App() {
                   }}
                 />)}
             </Header>
-            <AudioFilePicker />
+            <AudioFilePicker
+              key="audio-file-picker"
+            />
             <LocalStorageText />
           </div>
 

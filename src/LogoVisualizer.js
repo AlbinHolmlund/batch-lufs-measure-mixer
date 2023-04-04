@@ -82,12 +82,12 @@ const Icon = ({
 
 
     // Amplify the bass
-    const amplifiedBass = useAmplifier(bass || 0, 4, 10);
+    const amplifiedBass = useAmplifier(bass || 0, 4, 13);
 
     // Normalize the bass to a value between 0 and 1
     const bassNormalized = useTransition(offsetMidToHigh === 1 ? 0.8 : amplifiedBass, 2);
 
-    const bassValue = bassNormalized;
+    const bassValue = 0.3 + (bassNormalized * 0.7);
 
     //console.log("offsetMidToHigh", midToHigh, offsetMidToHighValue, Date.now());
 

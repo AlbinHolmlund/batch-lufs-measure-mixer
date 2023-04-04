@@ -126,5 +126,45 @@
         "fi": "Palauta viimeisin työtila",
         "da": "Gendan sidste arbejdsområde",
         "de": "Letzten Arbeitsbereich wiederherstellen"
+    },
+    "Stop playing audio when clicking outside of the box": {
+        "sv": "Stoppa uppspelning av ljud när du klickar utanför rutan",
+        "en": "Stop playing audio when clicking outside of the box",
+        "no": "Stopp avspilling av lyd når du klikker utenfor boksen",
+        "fi": "Lopeta äänen toisto, kun napsautat ruudun ulkopuolella",
+        "da": "Stop afspilning af lyd, når du klikker uden for boksen",
+        "de": "Audio-Wiedergabe stoppen, wenn außerhalb des Feldes geklickt wird"
+    },
+    "Keep playing audio when clicking outside of the box": {
+        "sv": "Fortsätt spela ljud när du klickar utanför rutan",
+        "en": "Keep playing audio when clicking outside of the box",
+        "no": "Fortsett avspilling av lyd når du klikker utenfor boksen",
+        "fi": "Jatka äänen toistoa, kun napsautat ruudun ulkopuolella",
+        "da": "Fortsæt med at afspille lyd, når du klikker uden for boksen",
+        "de": "Audio-Wiedergabe fortsetzen, wenn außerhalb des Feldes geklickt wird"
+    },
+    "Keep focus": {
+        "sv": "Behåll fokus",
+        "en": "Keep focus",
+        "no": "Behold fokus",
+        "fi": "Pidä keskittyminen",
+        "da": "Bevar fokus",
+        "de": "Fokus behalten"
+    },
+    "Off": {
+        "sv": "Av",
+        "en": "Off",
+        "no": "Av",
+        "fi": "Pois päältä",
+        "da": "Fra",
+        "de": "Aus"
+    },
+    "On": {
+        "sv": "På",
+        "en": "On",
+        "no": "På",
+        "fi": "Päällä",
+        "da": "Til",
+        "de": "An"
     }
 }

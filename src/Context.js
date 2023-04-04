@@ -3,7 +3,10 @@ import React, { createContext, useState } from 'react';
 const Context = createContext();
 
 const Provider = ({ children }) => {
-    const [data, setData] = useState({});
+    const [data, setData] = useState({
+        showVisualizer: true,
+
+    });
 
     return (
         <Context.Provider value={{ data, setData }}>

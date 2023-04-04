@@ -525,7 +525,7 @@ const SpotifyAnalyser = ({ track, updateGain, ...props }) => {
                     const hash = await arrayBufferToHash(arrayBuffer);
 
                     // Check if the hash exists in localStorage
-                    const lufs = false; //localStorage.getItem(hash);
+                    const lufs = localStorage.getItem('hash_lufs_' + hash);
                     if (lufs) {
                         console.log('Obtaining LUFS for arrayBuffer from localStorage', arrayBuffer);
                         setLufs(lufs);
@@ -645,7 +645,7 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
 
 const decodeAudioData = (arrayBuffer, audioCtx) => {
     return new Promise((resolve, reject) => {
-        audioCtx.decodeAudioData(arrayBuffer, function (buffer) {
+        audioCtx.decodeAudioData(arrayBuffer.slice(0), function (buffer) {
             resolve(buffer);
         }, function (e) {
             reject(e);
@@ -700,7 +700,7 @@ const exportAudioBuffer = async (arrayBuffer, fileName, volumeInDB, returnValue)
 };
 
 // Only one mixer at a time, and it connects to the audio context via props. The volume is based on dB, and the slider is based on a linear scale. Apply volume to the audio as a step before sending it to the audio context.
-const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
+const AudioMixer = ({ files, audioContext, otherTools }) => {
     const { __ } = useLanguage();
 
     // Tracks contains a gain node and an audio buffer source node
@@ -923,7 +923,7 @@ const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
                                 document.activeElement.blur();
                             }}
                             onBlur={() => {
-                                if (keepFocus) {
+                                if (localStorage.getItem('keepFocus') === 'true') {
                                     return;
                                 }
                                 if (activeTrackRef.current === track) {

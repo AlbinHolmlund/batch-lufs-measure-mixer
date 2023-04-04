@@ -179,12 +179,40 @@ const ShowVisualizerToggle = () => {
     );
 };
 
+const KeepFocusToggle = () => {
+    const { __ } = useLanguage();
+
+    const [keepFocus, setKeepFocus] = useLocalStorage(
+        'keepFocus',
+        true
+    );
+
+    return (
+        <Tooltip
+            title={
+                keepFocus ? __('Keep playing audio when clicking outside of the box') : __('Stop playing audio when clicking outside of the box')
+            }
+        >
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={keepFocus}
+                        onChange={(e) => setKeepFocus(e.target.checked)}
+                        name="keepFocus"
+                        color="primary"
+                    />
+                }
+                label={__('Keep focus')}
+            />
+        </Tooltip>
+    );
+};
+
 // Multifile picker, with audio file type filter
 const AudioFilePicker = () => {
     const { __, setLanguage, currentLanguage } = useLanguage();
     const [localStorageFiles, setLocalStorageFiles] = useState(null);
     const [files, setFiles] = useState([]);
-    const [keepFocus, setKeepFocus] = useLocalStorage('keepFocus', false);
 
     const [audioContext, setAudioContext] = useState(null);
 
@@ -346,20 +374,7 @@ const AudioFilePicker = () => {
 
                     <br />
 
-                    <Tooltip
-                        title={
-                            keepFocus ? __('Keep playing audio when clicking outside of the box') : __('Stop playing audio when clicking outside of the box')
-                        }
-                    >
-                        <Button
-                            onClick={() => {
-                                setKeepFocus(!keepFocus);
-                            }}
-                            color="primary"
-                        >
-                            {__('Keep focus: ')} {keepFocus ? __('On') : __('Off')}
-                        </Button>
-                    </Tooltip>
+                    <KeepFocusToggle />
 
                     <ShowVisualizerToggle />
                 </Toolbar>
@@ -369,7 +384,6 @@ const AudioFilePicker = () => {
                 <AudioMixer
                     files={files}
                     audioContext={audioContext}
-                    keepFocus={keepFocus}
                 />
             )}
         </div>

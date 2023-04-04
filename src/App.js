@@ -31,13 +31,25 @@ import packageJson from '../package.json';
 const githubRepository = 'https://api.github.com/repos/AlbinHolmlund/batch-lufs-measure-mixer/releases/latest';
 
 // Check if there is a new version available
-const newVersionAvailable = async () => {
+const githubDataPromise = (async () => {
+  // Cache in localStorage for 1 hour
+  const localStorageKey = 'newVersionAvailable';
+  const localStorageValue = localStorage.getItem(localStorageKey);
+  if (localStorageValue) {
+    const { data, timestamp } = JSON.parse(localStorageValue);
+    if (moment().diff(moment(timestamp), 'hours') < 1) {
+      return data;
+    }
+  }
+
   const response = await fetch(githubRepository);
   const data = await response.json();
-  console.log('data', data);
-  const latestVersion = data.tag_name.replace('v', '');
-  return latestVersion !== packageJson.version ? data : false;
-};
+  localStorage.setItem(localStorageKey, JSON.stringify({
+    data,
+    timestamp: moment().format(),
+  }));
+  return data;
+})();
 
 const Header = styled.a`
   position: fixed;
@@ -178,9 +190,14 @@ const InfoMessage = React.memo(({ children }) => {
       });
     });
 
-    newVersionAvailable().then((data) => {
+    githubDataPromise.then((data) => {
       console.log('result', data);
       if (data) {
+        const latestVersion = data.tag_name.replace('v', '');
+        if (!(latestVersion !== packageJson.version)) {
+          return;
+        }
+
         const windowsUrl = data.assets.find((asset) => asset.name.includes('exe')).browser_download_url;
         const macUrl = data.assets.find((asset) => asset.name.includes('zip')).browser_download_url;
         window.dispatchEvent(
@@ -327,6 +344,48 @@ const LocalStorageText = () => {
   );
 };
 
+const DownloadContainer = styled.div`
+  margin-top: 100px;
+  text-align: center;
+  font-weight: bold;
+
+  a{
+    color:inherit;
+    text-decoration: underline;
+  }
+`;
+
+
+const Download = () => {
+  const [data, setData] = React.useState(null);
+
+  React.useEffect(() => {
+    githubDataPromise.then((data) => {
+      setData(data);
+    });
+  }, []);
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <DownloadContainer>
+      <p>
+        <a
+          href={data.assets.find((asset) => asset.name.includes('exe')).browser_download_url}
+        >
+          Download for Windows
+        </a> | <a
+          href={data.assets.find((asset) => asset.name.includes('zip')).browser_download_url}
+        >
+          Download for Mac
+        </a>
+      </p>
+    </DownloadContainer>
+  );
+};
+
 function App() {
   const ctx = useContext(Context);
   return (
@@ -359,6 +418,8 @@ function App() {
               key="audio-file-picker"
             />
             <LocalStorageText />
+
+            <Download />
           </div>
 
           <InfoMessage />

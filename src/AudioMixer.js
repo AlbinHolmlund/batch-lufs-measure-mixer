@@ -578,6 +578,7 @@ const SpotifyAnalyser = ({ track, updateGain, ...props }) => {
         >
 
             <legend
+                class={"spotify-normalization " + (forceGain ? 'active' : '')}
                 style={{
                     fontSize: '0.5em',
                     cursor: 'pointer',
@@ -874,6 +875,19 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                             }}
                         >
                             {__(highPerfMode ? 'Enable LUFS meters' : 'Disable LUFS meters')}
+                        </Button>
+
+                        <Button
+                            style={{
+                                // Spotify green
+                                color: '#1DB954',
+                                filter: 'brightness(1.5)',
+                            }}
+                            onClick={() => {
+                                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+                            }}
+                        >
+                            {__('Normalize all tracks')}
                         </Button>
 
                         {otherTools}

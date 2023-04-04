@@ -44,8 +44,6 @@
     }
   </style>
 
-  <script src="%PUBLIC_URL%/AUdioContextMonkeyPatch.js"></script>
-
   <script type="text/javascript">
     (function (c, l, a, r, i, t, y) {
       c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
@@ -98,40 +96,6 @@
       display: none;
     }
   </style>
-
-  <script>
-    // If this is an electron app, listen to ipc messages
-    if (window && window.process && window.process.type) {
-      const { ipcRenderer } = window.require('electron');
-
-      // Listen for the 'update-available' event
-      ipcRenderer.on('update-available', () => {
-        // Show a notification or message to the user that an update is available
-        document.querySelector('.electron-updater').style.display = 'block';
-      });
-
-      // Listen for the 'update-downloaded' event
-      ipcRenderer.on('update-downloaded', () => {
-        // Show a notification or message to the user that the update is ready to be installed
-        document.querySelector('.update-available').style.display = 'none';
-
-        // You can prompt the user to restart the app to apply the update
-        if (confirm('A new update is available. Do you want to restart the app to apply the update?')) {
-          // Send a message to the main process to quit and install the update
-          ipcRenderer.send('install-update');
-        }
-      });
-
-      // Listen for the 'update-error' event
-      ipcRenderer.on('update-error', (event, error) => {
-        // Show a notification or message to the user that there was an error while checking for updates or downloading the update
-        document.querySelector('.update-error').style.display = 'block';
-
-        // Add error messaage
-        document.querySelector('.update-error').innerHTML = `<p>An error occurred while checking for updates: ${error}</p>`;
-      });
-    }
-  </script>
 </body>
 
 </html>

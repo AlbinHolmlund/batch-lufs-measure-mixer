@@ -14,6 +14,30 @@ import { Context } from './Context';
 import translations from './translations.json';
 import LogoVisualizer from './LogoVisualizer';
 
+// Get current version from package.json
+import packageJson from '../package.json';
+
+/*
+  To test the log message, run this in the console:
+  window.dispatchEvent(new CustomEvent('infoMessage', {
+    detail: {
+      id: 'something',
+      date: '2021-09-01 12:00:00',
+      message: 'This is a test log message',
+    },
+  }));
+*/
+
+const githubRepository = 'https://api.github.com/repos/AlbinHolmlund/batch-lufs-measure-mixer/releases/latest';
+
+// Check if there is a new version available
+const newVersionAvailable = async () => {
+  const response = await fetch(githubRepository);
+  const data = await response.json();
+  console.log('data', data);
+  const latestVersion = data.tag_name.replace('v', '');
+  return latestVersion !== packageJson.version ? data : false;
+};
 
 const Header = styled.a`
   position: fixed;
@@ -100,6 +124,14 @@ const AlertContainer = styled.div`
 
 const AlertStyled = styled(motion.div)`
   white-space: pre-wrap;
+  margin-bottom: 20px;
+  a{
+    display: block;
+    color: inherit;
+    &:after{
+      content: ' →'
+    }
+  }
 `;
 
 let dummyMessages = [
@@ -124,7 +156,7 @@ if (lastVisit) {
 }
 localStorage.setItem('lastVisit', moment().format('YYYY-MM-DD HH:mm:ss'));
 
-const InfoMessage = ({ children }) => {
+const InfoMessage = React.memo(({ children }) => {
   const { __ } = useLanguage();
   const [display, setDisplay] = useState(() => {
     const localStorageKey = 'infoMessage';
@@ -135,6 +167,44 @@ const InfoMessage = ({ children }) => {
     }
     return localStorageValue === 'true';
   });
+
+  const [infoMessages, setInfoMessages] = useState([]);
+
+  // Listen for window event called "infoMessage"
+  useEffect(() => {
+    window.addEventListener('infoMessage', (e) => {
+      setInfoMessages((messages) => {
+        return [...messages, e.detail];
+      });
+    });
+
+    newVersionAvailable().then((data) => {
+      console.log('result', data);
+      if (data) {
+        const windowsUrl = data.assets.find((asset) => asset.name.includes('exe')).browser_download_url;
+        const macUrl = data.assets.find((asset) => asset.name.includes('zip')).browser_download_url;
+        window.dispatchEvent(
+          new CustomEvent('infoMessage', {
+            detail: {
+              id: 'newVersionAvailable',
+              date: moment().format('YYYY-MM-DD HH:mm:ss'),
+              message: (
+                <>
+                  New version available: {data.tag_name.replace('v', '')}!
+                  <a href={windowsUrl}>
+                    Download for Windows
+                  </a>
+                  <a href={macUrl}>
+                    Download for Mac
+                  </a>
+                </>
+              )
+            },
+          })
+        );
+      }
+    });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('infoMessage', display);
@@ -148,29 +218,48 @@ const InfoMessage = ({ children }) => {
     });
   }, []);
 
-  if (!display) {
-    return null;
-  }
-
   return (
     <AlertContainer>
       <AnimatePresence>
-        <AlertStyled
-          initial={{ opacity: 0, x: '-100%' }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: '-100%' }}
-        >
-          <Alert
-            severity="info"
-            onClose={() => setDisplay(false)}
+        {infoMessages.map((message) => {
+          return (
+            <AlertStyled
+              key={message.id}
+              initial={{ opacity: 0, x: '-100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '-100%' }}
+            >
+              <Alert
+                severity="success"
+                onClose={() => {
+                  setInfoMessages((messages) => {
+                    return messages.filter((m) => m.id !== message.id);
+                  });
+                }}
+              >
+                {message.message}
+              </Alert>
+            </AlertStyled>
+          );
+        })}
+        {display && (
+          <AlertStyled
+            initial={{ opacity: 0, x: '-100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '-100%' }}
           >
-            {__('infoMessage')}
-          </Alert>
-        </AlertStyled>
+            <Alert
+              severity="info"
+              onClose={() => setDisplay(false)}
+            >
+              {__('infoMessage')}
+            </Alert>
+          </AlertStyled>
+        )}
       </AnimatePresence>
     </AlertContainer>
   );
-};
+});
 
 // Any time localStorage is updated, this component will re-render with the new value in the input
 // And when the input is updated, the localStorage is updated

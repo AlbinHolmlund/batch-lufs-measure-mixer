@@ -62,7 +62,7 @@
     },
     "mac": {
       "icon": "public/icons/android-chrome-512x512.png",
-      "target": "dmg"
+      "target": "zip"
     },
     "linux": {
       "target": "AppImage"

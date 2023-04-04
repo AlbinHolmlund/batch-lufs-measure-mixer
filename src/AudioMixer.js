@@ -579,7 +579,7 @@ const SpotifyAnalyser = ({ track, updateGain, ...props }) => {
 
             <legend
                 style={{
-                    fontSize: '0.7em',
+                    fontSize: '0.5em',
                     cursor: 'pointer',
                     textAlign: 'left',
                 }}
@@ -645,7 +645,7 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
 
 const decodeAudioData = (arrayBuffer, audioCtx) => {
     return new Promise((resolve, reject) => {
-        audioCtx.decodeAudioData(arrayBuffer.slice(0), function (buffer) {
+        audioCtx.decodeAudioData(arrayBuffer, function (buffer) {
             resolve(buffer);
         }, function (e) {
             reject(e);
@@ -729,9 +729,10 @@ const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
                         const source = document.createElement('source');
                         source.src = file.dataUri;
                         source.type = 'audio/wav';
-                        audio.appendChild(source);
 
+                        audio.appendChild(source);
                         audio.play();
+
                         const audioSource = audioContext.createMediaElementSource(audio);
                         audioSource.connect(gainNode);
 
@@ -797,8 +798,8 @@ const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
         // Pause current track
         if (activeTrackRef.current) {
             // Disconnect
-            // activeTrackRef.current.muteNode.disconnect();
-            // activeTrackRef.current = null;
+            /*activeTrackRef.current.muteNode.disconnect();
+            activeTrackRef.current = null;*/
             activeTrackRef.current.mute();
             closest(activeTrackRef.current.audio, '.mixer-track').classList.remove('active');
         }
@@ -988,7 +989,7 @@ const AudioMixer = ({ files, audioContext, otherTools, keepFocus }) => {
                                         }
                                     }}
                                 >
-                                    <audio controls />
+
                                 </DomInjector>
                             </MixerTrackVolume>
                         </MixerTrack>

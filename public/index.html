@@ -68,6 +68,70 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+
+  <div class="electron-updater" style="display: none;">
+    <div class="update-available">
+      <p>An update is available. Downloading...</p>
+    </div>
+    <div class="update-error">
+      <p>An error occurred while checking for updates.</p>
+    </div>
+  </div>
+
+  <style>
+    .electron-updater {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #1A1E29;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .update-available {
+      display: none;
+    }
+
+    .update-error {
+      display: none;
+    }
+  </style>
+
+  <script>
+    // If this is an electron app, listen to ipc messages
+    if (window && window.process && window.process.type) {
+      const { ipcRenderer } = window.require('electron');
+
+      // Listen for the 'update-available' event
+      ipcRenderer.on('update-available', () => {
+        // Show a notification or message to the user that an update is available
+        document.querySelector('.electron-updater').style.display = 'block';
+      });
+
+      // Listen for the 'update-downloaded' event
+      ipcRenderer.on('update-downloaded', () => {
+        // Show a notification or message to the user that the update is ready to be installed
+        document.querySelector('.update-available').style.display = 'none';
+
+        // You can prompt the user to restart the app to apply the update
+        if (confirm('A new update is available. Do you want to restart the app to apply the update?')) {
+          // Send a message to the main process to quit and install the update
+          ipcRenderer.send('install-update');
+        }
+      });
+
+      // Listen for the 'update-error' event
+      ipcRenderer.on('update-error', (event, error) => {
+        // Show a notification or message to the user that there was an error while checking for updates or downloading the update
+        document.querySelector('.update-error').style.display = 'block';
+
+        // Add error messaage
+        document.querySelector('.update-error').innerHTML = `<p>An error occurred while checking for updates: ${error}</p>`;
+      });
+    }
+  </script>
 </body>
 
 </html>

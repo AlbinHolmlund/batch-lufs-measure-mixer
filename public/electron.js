@@ -4,6 +4,14 @@ const fs = require('fs-extra');
 const isDev = require('electron-is-dev');
 const express = require('express');
 const getPort = require('get-port'); // Last version before switching to ESM is 5.1.1
+const { autoUpdater } = require('electron-updater');
+
+
+const { ipcMain } = require('electron');
+
+ipcMain.on('install-update', () => {
+    autoUpdater.quitAndInstall();
+});
 
 global.__dirname = app.getAppPath();
 console.log('window.__dirname', global.__dirname);
@@ -15,6 +23,23 @@ const homepage = require('../package.json').homepage;
 
 // Remove the https://skrap.info
 const audioPath = homepage.replace('https://skrap.info', '');
+
+
+async function checkForUpdates() {
+    autoUpdater.checkForUpdatesAndNotify();
+
+    autoUpdater.on('update-available', () => {
+        mainWindow.webContents.send('update-available');
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+        mainWindow.webContents.send('update-downloaded');
+    });
+
+    autoUpdater.on('error', (error) => {
+        mainWindow.webContents.send('update-error', error);
+    });
+}
 
 // Cache the result into a file, so that the port is the same on every run
 const cacheResult = async (key, fn, force = false) => {
@@ -199,7 +224,10 @@ async function createWindow() {
     });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+    await createWindow();
+    checkForUpdates();
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

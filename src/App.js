@@ -348,6 +348,8 @@ const DownloadContainer = styled.div`
   margin-top: 100px;
   text-align: center;
   font-weight: bold;
+  position: relative;
+  z-index: 200000;
 
   a{
     color:inherit;

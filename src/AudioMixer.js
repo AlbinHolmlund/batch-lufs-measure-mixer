@@ -725,6 +725,8 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                         const audio = document.createElement('audio');
                         audio.controls = true;
                         audio.loop = true;
+                        audio.autoplay = true;
+                        audio.muted = true;
 
                         // Add source
                         const source = document.createElement('source');
@@ -732,7 +734,6 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                         source.type = 'audio/wav';
 
                         audio.appendChild(source);
-                        audio.play();
 
                         const audioSource = audioContext.createMediaElementSource(audio);
                         audioSource.connect(gainNode);
@@ -997,6 +998,25 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                     inject={(el) => {
                                         console.log('injecting', el);
                                         el.appendChild(track.audio);
+
+                                        // Play if not playing
+                                        if (track.audio.paused) {
+                                            track.audio.play();
+                                        }
+
+                                        // On next mouse or touch event, unmute 
+                                        const unmute = () => {
+                                            track.audio.muted = false;
+
+                                            document.removeEventListener('mousedown', unmute);
+                                            document.removeEventListener('touchstart', unmute);
+                                            document.removeEventListener('mousemove', unmute);
+                                        };
+                                        document.addEventListener('mousedown', unmute);
+                                        document.addEventListener('touchstart', unmute);
+                                        document.addEventListener('mousemove', unmute);
+
+
                                         return () => {
                                             console.log('unmounting', el);
                                             track.audio.remove();

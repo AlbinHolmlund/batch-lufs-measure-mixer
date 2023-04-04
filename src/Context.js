@@ -4,7 +4,7 @@ const Context = createContext();
 
 const Provider = ({ children }) => {
     const [data, setData] = useState({
-        showVisualizer: true,
+        showVisualizer: false
 
     });
 

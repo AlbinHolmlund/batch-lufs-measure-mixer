@@ -153,7 +153,7 @@ const ShowVisualizerToggle = () => {
     const ctx = useContext(Context);
     const [showVisualizer, setShowVisualizer] = useLocalStorage(
         'showVisualizer',
-        true
+        false
     );
 
     useEffect(() => {
@@ -260,6 +260,12 @@ const AudioFilePicker = () => {
                     console.log('done', urls);
                     // Save in localStorage
                     localStorage.setItem('files', JSON.stringify(urls));
+
+                    // Immediately load the files
+                    setLocalStorageFiles(JSON.parse(localStorage.getItem('files')));
+
+                    // Remove the files from the input
+                    setFiles([]);
                 } catch (e) {
                     console.log(e);
                 }

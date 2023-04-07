@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 // import Flag from "react-flags";
 import AudioMixer from './AudioMixer';
@@ -156,13 +156,24 @@ const ShowVisualizerToggle = () => {
         false
     );
 
-    useEffect(() => {
+    // On change, set showVisualizer in context
+    useLayoutEffect(() => {
         console.log('showVisualizer', showVisualizer);
         ctx?.setData((data) => ({
             ...data,
             showVisualizer: showVisualizer,
         }));
     }, [showVisualizer]);
+
+    // On unmount, set showVisualizer to false
+    useLayoutEffect(() => {
+        return () => {
+            ctx?.setData((data) => ({
+                ...data,
+                showVisualizer: false,
+            }));
+        };
+    }, []);
 
     return (
         <FormControlLabel
@@ -216,6 +227,15 @@ const AudioFilePicker = () => {
 
     const [audioContext, setAudioContext] = useState(null);
 
+    // If audioContext is set, close it on unmount
+    useEffect(() => {
+        return () => {
+            if (audioContext) {
+                audioContext.close();
+            }
+        };
+    }, [audioContext]);
+
     const handleFileChange = async (e) => {
         const files = e.target.files;
 
@@ -259,10 +279,12 @@ const AudioFilePicker = () => {
                     }))
                     console.log('done', urls);
                     // Save in localStorage
-                    localStorage.setItem('files', JSON.stringify(urls));
+                    if (window.caches) {
+                        localStorage.setItem('files', JSON.stringify(urls));
+                    }
 
                     // Immediately load the files
-                    setLocalStorageFiles(JSON.parse(localStorage.getItem('files')));
+                    setLocalStorageFiles(urls);
 
                     // Remove the files from the input
                     setFiles([]);
@@ -285,12 +307,12 @@ const AudioFilePicker = () => {
 
     useEffect(() => {
         // In dev mode, trigger handleFileChange with a file loaded from dummyFileUrl
-        if (0 && window.location.href.indexOf(':3000') > -1) {
+        if (window.location.href.indexOf(':3000') > -1) {
             window.localStorage.removeItem('files');
             const dummyFileUrl = '/audio/demo.wav';
             const handleOnClick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                e && e.preventDefault();
+                e && e.stopPropagation();
 
                 fetch(dummyFileUrl).then((response) => response.arrayBuffer()).then((response) => {
                     const file = new File([response], 'demo.wav', { type: 'audio/wav' });
@@ -299,11 +321,20 @@ const AudioFilePicker = () => {
                             files: [file]
                         }
                     });
+
+                    setTimeout(() => {
+                        // Click on the box
+                        document.querySelector('.box').focus();
+                    }, 1000);
                 });
 
                 document.querySelector('html').removeEventListener('click', handleOnClick);
             };
-            document.querySelector('html').addEventListener('click', handleOnClick);
+            try {
+                handleOnClick();
+            } catch (e) {
+                document.querySelector('html').addEventListener('click', handleOnClick);
+            }
             return () => {
                 document.querySelector('html').removeEventListener('click', handleOnClick);
             };

@@ -15,6 +15,8 @@ import { useLanguage } from './useLanguage';
 import AudioVisualizer from './AudioVisualizer.';
 import useLocalStorageState from './useLocalStorageState';
 
+import SpotifyAnalyser from './SpotifyAnalyser';
+
 const closest = (el, selector) => {
     // Walk up the DOM tree until we find a node that matches the selector or we reach the top
     while (el) {
@@ -292,17 +294,21 @@ const MixerTrackVolume = styled.div`
 
 const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, volumeDependantChildren, ...props }) => {
     const [volumeInDB, setVolumeInDB] = useLocalStorageState((file && file.name || 'none') + '_volume', 0);
+    const [trackGainModifiers, setTrackGainModifiers] = useLocalStorageState((file && file.name || 'none') + '_trackGainModifiers', {});
 
     useEffect(() => {
-        onChange && onChange(volumeInDB);
-    }, [volumeInDB, onChange]);
+        onChange && onChange(
+            Object.values(trackGainModifiers).reduce((a, b) => a + b, volumeInDB)
+        );
+    }, [volumeInDB, onChange, trackGainModifiers]);
 
     return (
         <div className={className}>
             {children}
             {volumeDependantChildren && volumeDependantChildren({
                 volumeInDB,
-                setVolumeInDB
+                setVolumeInDB,
+                setTrackGainModifiers,
             })}
             <input
                 type="range"
@@ -339,6 +345,13 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
             <div>{
                 volumeInDB > 0 ? `+${volumeInDB} dB` : `${volumeInDB} dB`
             }</div>
+            <div>
+                {Object.keys(trackGainModifiers).map((key) => (
+                    <div key={key}>
+                        {key}: {trackGainModifiers[key]} dB
+                    </div>
+                ))}
+            </div>
         </div>
     )
 })`
@@ -427,184 +440,6 @@ let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
             <legend>
                 <span>Integrated</span>
                 {formatLufs(integrated)}
-            </legend>
-        </div>
-    );
-};
-
-
-const getLufs = async (arrayBuffer) => {
-    // Create a new audio context
-    // Create a new offline context
-    const audioCtx0 = new AudioContext();
-
-    // Decode the audio data
-    const audioBuffer = await decodeAudioData(arrayBuffer, audioCtx0);
-
-    console.log('audioBuffer', audioBuffer)
-
-    var audioCtx = new OfflineAudioContext(
-        audioBuffer.numberOfChannels,
-        audioBuffer.duration * audioBuffer.sampleRate,
-        audioBuffer.sampleRate
-    );
-
-    // Create a new audio buffer source
-    var source = audioCtx.createBufferSource();
-
-    // Set the audio buffer to the source
-    source.buffer = audioBuffer;
-
-    // Create a new loudness meter
-    var loudnessMeter = new LoudnessMeter({
-        source: source,
-        modes: ['integrated'],
-        workerUri: window.PUBLIC_URL + '/needles-worker.js'
-    });
-
-    // Start the loudness meter
-    loudnessMeter.start();
-
-    const lufs = await new Promise((resolve, reject) => {
-        loudnessMeter.on('dataavailable', function (event) {
-            // event.data.mode // momentary | short-term | integrated
-            // short-term means the last 3 seconds
-            // momentary means the last 400ms
-            // event.data.value // -14
-            // console.log(event.data.mode, event.data.value)
-            if (event.data.mode === 'integrated') {
-                console.log('lufs', event.data.value)
-                resolve(event.data.value);
-            }
-        });
-    });
-
-    return lufs;
-};
-
-async function arrayBufferToHash(buffer) {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
-
-
-const SpotifyAnalyser = ({ track, updateGain, ...props }) => {
-    /*
-        0. Wait for button click
-        1. Get the track
-        2. Use needles offline to get the LUFS
-        3. Use the LUFS to set the gain
-    */
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [lufs, setLufs] = useState(null);
-    const [gain, setGain] = useState(false);
-    const [forceGain, setForceGain] = useState(false);
-
-    useEffect(() => {
-        if (track && forceGain) {
-            setLoading(true);
-            setError(null);
-            setLufs(null);
-            setGain(false);
-
-            (async () => {
-                try {
-                    await new Promise((resolve, reject) => {
-                        setTimeout(() => {
-                            resolve();
-                        }, 1000);
-                    });
-
-                    // Use exportAudioBuffer to get the LUFS
-                    const arrayBuffer = track.audioData;
-
-                    // Store in localStorage based on hash of blob
-                    const hash = await arrayBufferToHash(arrayBuffer);
-
-                    // Check if the hash exists in localStorage
-                    const lufs = localStorage.getItem('hash_lufs_' + hash);
-                    if (lufs) {
-                        console.log('Obtaining LUFS for arrayBuffer from localStorage', arrayBuffer);
-                        setLufs(lufs);
-                        setLoading(false);
-
-                        if (updateGain) {
-                            // Use lufs to calculate gain reduction for spotify (-14 LUFS)
-                            const gainReduction = -14 - lufs;
-
-                            // Update the gain
-                            updateGain(gainReduction);
-                        }
-                        return;
-                    } else {
-                        console.log('Obtaining LUFS for arrayBuffer', arrayBuffer);
-                        const lufs = await getLufs(arrayBuffer);
-
-                        // Use lufs to calculate gain reduction for spotify (-14 LUFS)
-                        console.log('lufs', lufs);
-                        const gainReduction = -14 - lufs;
-
-                        setGain(parseFloat(gainReduction.toFixed(2)));
-                        setLufs(parseFloat(lufs.toFixed(2)));
-                        setLoading(false);
-                        if (updateGain) {
-
-                            // Update the gain
-                            updateGain(parseFloat(gainReduction.toFixed(2)))
-                        }
-
-                        // Store in localStorage
-                        localStorage.setItem(hash, lufs);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    setError(e);
-                    setLoading(false);
-                }
-            })();
-        }
-    }, [track, forceGain]);
-
-    return (
-        <div
-            style={{
-                position: 'absolute',
-                top: 0,
-                left: 55 + '%',
-            }}
-        >
-
-            <legend
-                class={"spotify-normalization " + (forceGain ? 'active' : '')}
-                style={{
-                    fontSize: '0.5em',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setForceGain(!forceGain);
-                    setLoading(false);
-                    setError(null);
-                    setLufs(null);
-                    setGain(false);
-                }}
-            >
-                <span style={{
-                    // Color is spotify green (darker) if forceGain is true otherwise red
-                    color: forceGain ? '#1db954' : '#b91d47',
-
-                }}>{
-                        forceGain ? 'Deactivate' : 'Activate'
-                    } <br />
-                    Normalization (Spotify)</span> <br />
-                {loading && <div>Loading...</div>}
-                {error && <div>Error: {error.message}</div>}
-                {lufs && <div>LUFS: {lufs}</div>}
-                {gain && <div>Gain: {gain}</div>}
             </legend>
         </div>
     );
@@ -922,7 +757,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                             //onMouseLeave={() => handleStop(track)}
                             // Make focusable so that we can use the keyboard to play and stop
                             tabIndex={0}
-                            className={activeTrackRef.current === track ? 'active' : ''}
+                            className={activeTrackRef.current === track ? 'box active' : 'box'}
                             onFocus={() => {
                                 if (activeTrackRef.current !== track) {
                                     handlePlay(track);
@@ -961,14 +796,13 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
 
                                         // const volumeInLinearScale = Math.pow(10, volumeInDB / 20);
                                     }}
-                                    volumeDependantChildren={({ volumeInDB, setVolumeInDB }) => {
+                                    volumeDependantChildren={({ volumeInDB, setTrackGainModifiers }) => {
                                         return (
                                             !highPerfMode && (
                                                 <SpotifyAnalyser
                                                     track={track}
-                                                    updateGain={(newVolumeInDB) => {
-                                                        setVolumeInDB(newVolumeInDB);
-                                                    }}
+                                                    exportAudioBuffer={exportAudioBuffer}
+                                                    setTrackGainModifiers={setTrackGainModifiers}
                                                 />
                                             )
                                         );

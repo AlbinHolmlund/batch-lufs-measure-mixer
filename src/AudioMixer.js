@@ -801,7 +801,6 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                             !highPerfMode && (
                                                 <SpotifyAnalyser
                                                     track={track}
-                                                    exportAudioBuffer={exportAudioBuffer}
                                                     setTrackGainModifiers={setTrackGainModifiers}
                                                 />
                                             )

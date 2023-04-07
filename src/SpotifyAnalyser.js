@@ -110,20 +110,23 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
             setError(null);
             setLufs(null);
             setGain(false);
+            updateGain(0);
 
             (async () => {
                 try {
                     await new Promise((resolve, reject) => {
                         setTimeout(() => {
                             resolve();
-                        }, 1000);
+                        }, 0);
                     });
 
                     // Use exportAudioBuffer to get the LUFS
+                    // Arraybuffer with applied input gain (dbs in volume)
                     const arrayBuffer = track.audioData;
 
                     // Store in localStorage based on hash of blob
-                    const hash = await arrayBufferToHash(arrayBuffer);
+                    // Since the new arrayBuffer is directly dependant on the volume, we can bypass the need to store the arrayBuffer itself by storing the hash of the arrayBuffer and the volume
+                    const hash = await arrayBufferToHash(arrayBuffer) + track.gainNode.gain.value;
 
                     // Check if the hash exists in localStorage
                     const lufs = localStorage.getItem('hash_lufs_' + hash);
@@ -179,7 +182,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         >
 
             <legend
-                class={"spotify-normalization " + (forceGain ? 'active' : '')}
+                class={"spotify-normalization active"}
                 style={{
                     fontSize: '0.5em',
                     cursor: 'pointer',

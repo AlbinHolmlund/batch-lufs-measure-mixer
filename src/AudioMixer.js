@@ -345,7 +345,9 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
             <div>{
                 volumeInDB > 0 ? `+${volumeInDB} dB` : `${volumeInDB} dB`
             }</div>
-            <div>
+            <div style={{
+                fontSize: '0.5em',
+            }}>
                 {Object.keys(trackGainModifiers).map((key) => (
                     <div key={key}>
                         {key}: {trackGainModifiers[key]} dB

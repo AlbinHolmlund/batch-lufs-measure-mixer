@@ -1,6 +1,6 @@
 {
   "name": "batch-lufs-measure-mixer",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "homepage": "https://skrap.info/audio",
   "main": "public/electron.js",

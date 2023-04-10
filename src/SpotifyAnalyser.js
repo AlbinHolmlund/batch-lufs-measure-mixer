@@ -14,15 +14,43 @@ const arrayBufferToHash = async (buffer) => {
     return hashHex;
 }
 
-const getLufs = async (arrayBuffer) => {
+const getLufs = async (track, arrayBuffer) => {
     // Queue the function
     return await queue.add(async () => {
         // Create a new audio context
         // Create a new offline context
         const audioCtx = new AudioContext();
 
-        // Decode the audio data
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+        // Decode the audio data with the gainNode applied
+        let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+
+        const gainOfflineCtx = new OfflineAudioContext(
+            audioBuffer.numberOfChannels,
+            audioBuffer.duration * audioBuffer.sampleRate,
+            audioBuffer.sampleRate
+        );
+
+        // Create a new audio buffer source
+        const gainSource = gainOfflineCtx.createBufferSource();
+
+        // Set the audio buffer to the source
+        gainSource.buffer = audioBuffer;
+
+        // Create a new gain node
+        const gainNode = gainOfflineCtx.createGain();
+        gainNode.gain.value = track.gainNode.gain.value;
+
+        // Set the gain node to the source
+        gainSource.connect(gainNode);
+
+        // Connect the gain node to the offline context
+        gainNode.connect(gainOfflineCtx.destination);
+
+        // Start the source
+        gainSource.start();
+
+        // Render the audio
+        audioBuffer = await gainOfflineCtx.startRendering();
 
         // Close the audio context
         if (audioCtx.close) {
@@ -85,7 +113,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
             setTrackGainModifiers((trackGainModifiers) => {
                 return {
                     ...trackGainModifiers,
-                    normalizationGain,
+                    Normalization: normalizationGain,
                 };
             });
 
@@ -130,7 +158,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
 
                     // Check if the hash exists in localStorage
                     const lufs = localStorage.getItem('hash_lufs_' + hash);
-                    if (lufs) {
+                    if (0 && lufs) {
                         console.log('Obtaining LUFS for arrayBuffer from localStorage', arrayBuffer);
                         setLufs(lufs);
                         setLoading(false);
@@ -145,7 +173,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                         return;
                     } else {
                         console.log('Obtaining LUFS for arrayBuffer', arrayBuffer);
-                        const lufs = await getLufs(arrayBuffer);
+                        const lufs = await getLufs(track, arrayBuffer);
 
                         // Use lufs to calculate gain reduction for spotify (-14 LUFS)
                         console.log('lufs', lufs);
@@ -169,6 +197,8 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                     setLoading(false);
                 }
             })();
+        } else {
+            updateGain(0);
         }
     }, [track, forceGain]);
 
@@ -182,7 +212,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         >
 
             <legend
-                class={"spotify-normalization active"}
+                class={"spotify-normalization" + (forceGain ? ' active' : '')}
                 style={{
                     fontSize: '0.5em',
                     cursor: 'pointer',

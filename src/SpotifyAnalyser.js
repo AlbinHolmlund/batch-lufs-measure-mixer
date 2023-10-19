@@ -248,7 +248,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         >
 
             <legend
-                className={"spotify-normalization" + (forceGain ? ' active' : '')}
+                className={"spotify-normalization " + ((forceGain && !loading) ? 'active ' : '') + (loading ? 'loading ' : '') + (error ? 'error ' : '')}
                 style={{
                     fontSize: '0.5em',
                     cursor: 'pointer',

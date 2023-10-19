@@ -325,9 +325,22 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
             window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
 
             await new Promise((resolve) => {
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     resolve();
-                }, 100);
+                });
+            });
+
+            // Make sure that there isnt any tracks that isnt normalized yet
+            await new Promise((resolve) => {
+                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+
+                const interval = setInterval(() => {
+                    if ([...document.querySelectorAll('.spotify-normalization:not(.active)')].length === 0) {
+                        console.log('done');
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 20);
             });
 
             // Read counter
@@ -342,14 +355,6 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
                 // Read what the highest gain is
                 // const { highestGain } = e.detail;
                 // console.log('highestGain2', highestGain)
-
-                [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
-
-                await new Promise((resolve) => {
-                    requestAnimationFrame(() => {
-                        resolve();
-                    });
-                });
 
                 const highestGain = window.highestGain;
 
@@ -366,15 +371,6 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
 
                 setVolumeInDB(gainDifference || 0);
                 setVolumeInDBTemp(gainDifference || 0);
-
-
-                await new Promise((resolve) => {
-                    requestAnimationFrame(() => {
-                        resolve();
-                    });
-                });
-
-                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
             }, 1);
         }
         window.addEventListener('auto-gain', listener);
@@ -898,7 +894,6 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
             </div>
             <div>
                 <Button
-                    className="hidden button"
                     style={{
                         // Color is a golden dark yellow
                         color: '#f5d742',
@@ -913,15 +908,16 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                         
                         2. It will also remove any volume changes you have made manually on your tracks.
                         
-                        3. Spotify normalization must be ran at least once before this will work.`)) {
+                        3. It will turn off spotify normalization for all tracks as well.`)) {
                             return;
                         }
+                        alert('Okay! Turning on spotify normalization on all tracks. Once it is finished, the volumes will be evened out.');
                         window.dispatchEvent(new CustomEvent('auto-gain'));
                     }}
                 >
-                    {__('Even out track volumes (Extremely beta but magical) ✨')}
+                    {__('Equalize track volumes (Extremely beta but magical) ✨')}
                 </Button>
-            </div>
+            </div >
             <MixerContainer>
                 {tracks && tracks.map((track, index) => {
                     if (!track) {

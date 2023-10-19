@@ -36,9 +36,13 @@ const githubDataPromise = (async () => {
   const localStorageKey = 'newVersionAvailable';
   const localStorageValue = localStorage.getItem(localStorageKey);
   if (localStorageValue) {
-    const { data, timestamp } = JSON.parse(localStorageValue);
-    if (moment().diff(moment(timestamp), 'hours') < 1) {
-      return data;
+    try {
+      const { data, timestamp } = JSON.parse(localStorageValue);
+      if (moment().diff(moment(timestamp), 'hours') < 1) {
+        return data;
+      }
+    } catch (e) {
+      console.log('Error parsing localStorageValue', e);
     }
   }
 
@@ -368,11 +372,16 @@ const Download = () => {
   }, []);
 
   if (!data) {
-    return null;
+    return (
+      <DownloadContainer>
+        <p>Build version v{packageJson.version}</p>
+      </DownloadContainer>
+    );
   }
 
   return (
     <DownloadContainer>
+      <p>Build version v{packageJson.version}</p>
       <p>
         <a
           href={data.assets.find((asset) => asset.name.includes('exe')).browser_download_url}

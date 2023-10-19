@@ -229,7 +229,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
             const uniqueGains = [...new Set(gains)];
             localStorage.setItem('gains', JSON.stringify(uniqueGains));
 
-            // Display highest gain value
+            // Get the highest gain (get for example -5 rather than -2)
             const highestGain = uniqueGains.reduce((a, b) => Math.min(a, b), 0);
 
             // Store highestGain and the current gain in window

@@ -3,10 +3,15 @@ import { useState, useEffect } from 'react';
 const useLocalStorageState = (key, defaultValue) => {
     const [state, setState] = useState(() => {
         const valueInLocalStorage = window.localStorage.getItem(key);
-        if (valueInLocalStorage) {
-            return JSON.parse(valueInLocalStorage);
+        try {
+            if (valueInLocalStorage) {
+                return JSON.parse(valueInLocalStorage);
+            }
+            return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+        } catch (error) {
+            console.log(error);
+            return defaultValue;
         }
-        return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
     });
 
     useEffect(() => {

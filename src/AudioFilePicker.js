@@ -397,6 +397,8 @@ const AudioFilePicker = () => {
 
                     <Button
                         onClick={() => {
+                            // Set gain localStorage to '[]'
+                            localStorage.setItem('gains', '[]');
                             setFiles([]);
                             setAudioContext(null);
                             localStorage.removeItem('files');

@@ -17,3 +17,11 @@ root.render((
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+
+// Add cmd + a
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey && e.key === 'a') {
+    e.preventDefault();
+    document.execCommand('selectAll');
+  }
+});

@@ -218,6 +218,26 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         }
     }, [track, forceGain]);
 
+    // Store gain value in localStorage so we can figure out the highest gain value later
+    useEffect(() => {
+        if (gain) {
+            window.tracks[track.index].gain = gain;
+
+            const gains = JSON.parse(localStorage.getItem('gains')) || [];
+            gains.push(gain);
+            // Unique
+            const uniqueGains = [...new Set(gains)];
+            localStorage.setItem('gains', JSON.stringify(uniqueGains));
+
+            // Display highest gain value
+            const highestGain = uniqueGains.reduce((a, b) => Math.min(a, b), 0);
+
+            // Store highestGain and the current gain in window
+            window.highestGain = highestGain;
+        }
+
+    }, [gain, track]);
+
     return (
         <div
             style={{
@@ -253,9 +273,8 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                 <br />
                 {loading && <div>Analyzing track...</div>}
                 {error && <div>Error: {error.message}</div>}
-                {lufs && <div>Loud.penalty: {lufs}</div>}
-                {gain && <div>LUFS: {gain + 14}</div>}
-                {gain && <div>Gain: {gain}</div>}
+                {gain && <div>Loud.penalty: {(gain + 14).toFixed(2)}</div>}
+                {gain && <div>Gain: {gain.toFixed(2)}</div>}
             </legend>
         </div>
     );

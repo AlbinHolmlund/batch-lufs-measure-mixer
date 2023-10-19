@@ -86,6 +86,9 @@ const darkTheme = createTheme({
 });
 
 const CssGlobals = createGlobalStyle`
+  .hidden {
+    display: none !important;
+  }
   body {
     background-color: #0a1929 !important;
     color: #fff;

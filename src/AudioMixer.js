@@ -295,13 +295,105 @@ const MixerTrackVolume = styled.div`
 
 const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, volumeDependantChildren, ...props }) => {
     const [volumeInDB, setVolumeInDB] = useLocalStorageState((file && file.name || 'none') + '_volume', 0);
+    const [volumeInDBTemp, setVolumeInDBTemp] = useState(0);
     const [trackGainModifiers, setTrackGainModifiers] = useLocalStorageState((file && file.name || 'none') + '_trackGainModifiers', {});
+
+    useEffect(() => {
+        if (!volumeInDB || isNaN(volumeInDB)) {
+            setVolumeInDB(0);
+        }
+    }, [volumeInDB]);
 
     useEffect(() => {
         onChange && onChange(
             Object.values(trackGainModifiers).reduce((a, b) => a + b, volumeInDB)
         );
     }, [volumeInDB, onChange, trackGainModifiers]);
+
+    useEffect(() => {
+        setVolumeInDBTemp(volumeInDB);
+    }, [volumeInDB]);
+
+
+    useEffect(() => {
+        // Listen for the highestGain event
+        const listener = async (e) => {
+            // Reset counter
+            // localStorage.setItem('gains-received-counted', 0);
+
+            // Call the undo gain event and wait for it to finish
+            window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+
+            await new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 100);
+            });
+
+            // Read counter
+            // const gainsReceivedCounted = parseInt(localStorage.getItem('gains-received-counted'));
+            // console.log('gainsReceivedCounted', gainsReceivedCounted);
+
+            // Undo normalization
+            // [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+
+            // updateGain(gainDifference);
+            setTimeout(async () => {
+                // Read what the highest gain is
+                // const { highestGain } = e.detail;
+                // console.log('highestGain2', highestGain)
+
+                [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+
+                await new Promise((resolve) => {
+                    requestAnimationFrame(() => {
+                        resolve();
+                    });
+                });
+
+                const highestGain = window.highestGain;
+
+                // Do the gain calculation
+
+                // Calc8lagte diference between highest gain and current gain
+                let gainDifference = window.tracks[file.index].gain - highestGain;
+                gainDifference = Math.round(gainDifference * 10) / 10;
+
+                console.log('file', file);
+
+                // Update gain
+                console.log('gainDifference', gainDifference)
+
+                setVolumeInDB(gainDifference || 0);
+                setVolumeInDBTemp(gainDifference || 0);
+
+
+                await new Promise((resolve) => {
+                    requestAnimationFrame(() => {
+                        resolve();
+                    });
+                });
+
+                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+            }, 1);
+        }
+        window.addEventListener('auto-gain', listener);
+        return () => {
+            window.removeEventListener('auto-gain', listener);
+        };
+    }, []);
+
+    useEffect(() => {
+        // Listen for window audio-mixer-undo-all-gains event
+        const listener = (e) => {
+            setVolumeInDB(0);
+            setVolumeInDBTemp(0);
+        };
+        window.addEventListener('audio-mixer-undo-all-gains', listener);
+        return () => {
+            window.removeEventListener('audio-mixer-undo-all-gains', listener);
+        };
+    }, []);
 
     return (
         <div className={className}>
@@ -314,15 +406,22 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
             <input
                 type="range"
                 orient="vertical"
+                step="0.1"
                 min="-5"
                 max="5"
-                step="0.1"
                 style={{
                     display: 'block',
                     margin: '10px auto'
                 }}
                 onChange={(e) => {
-                    const volumeInDB = parseFloat(e.target.value);
+                    let volumeInDB = parseFloat(e.target.value);
+
+                    if (!volumeInDB || isNaN(volumeInDB)) {
+                        volumeInDB = 0;
+                    } else if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
+                        volumeInDB = 0;
+                    }
+
                     setVolumeInDB(volumeInDB);
                 }}
                 onDoubleClick={() => {
@@ -332,15 +431,20 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
             />
             <input
                 type="number"
-                min="-5"
-                max="5"
-                step="0.1"
-                value={`${volumeInDB}`}
+                value={`${volumeInDBTemp}`}
                 onChange={(e) => {
-                    const volumeInDB = parseFloat(e.target.value);
-                    if (!isNaN(volumeInDB)) {
-                        setVolumeInDB(volumeInDB);
+                    let volumeInDB = e.target.value;
+
+                    setVolumeInDBTemp(volumeInDB);
+                }}
+                onBlur={(e) => {
+                    let volumeInDB = parseFloat(e.target.value);
+
+                    if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
+                        volumeInDB = 0;
                     }
+
+                    setVolumeInDB(volumeInDB);
                 }}
             />
             <div>{
@@ -651,6 +755,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                     setTracks((tracks) => {
                         // Replace at index
                         tracks[fileNode.index] = fileNode;
+                        window.tracks = tracks;
                         return [...tracks];
                     });
                 });
@@ -743,19 +848,79 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                         <Button
                             style={{
                                 // Spotify green
-                                color: '#1DB954',
-                                filter: 'brightness(1.5)',
+                                // color: '#1DB954',
+                                // filter: 'brightness(1.5)',
+                                // Make color 50% brighter
+                                color: Color('#1DB954').lighten(0.5).toString(),
                             }}
                             onClick={() => {
-                                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+                                (async () => {
+                                    window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+
+                                    await new Promise((resolve) => {
+                                        requestAnimationFrame(() => {
+                                            resolve();
+                                        });
+                                    });
+
+                                    [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+
+                                    await new Promise((resolve) => {
+                                        requestAnimationFrame(() => {
+                                            resolve();
+                                        });
+                                    });
+
+                                    [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+
+                                    [...document.querySelectorAll('.hidden.button')].forEach(node => node.classList.remove('hidden'));
+                                })();
                             }}
                         >
                             {__('Normalize all tracks')}
                         </Button>
 
+                        <Button
+                            style={{
+                                color: '#fff',
+                                opacity: 0.5
+                            }}
+                            onClick={() => {
+                                window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+                            }}
+                        >
+                            {__('Undo all volume changes (beta)')}
+                        </Button>
+
                         {otherTools}
                     </>
                 ) : null}
+            </div>
+            <div>
+                <Button
+                    className="hidden button"
+                    style={{
+                        // Color is a golden dark yellow
+                        color: '#f5d742',
+                    }}
+                    onClick={() => {
+                        // Give yes or no option with some more info
+
+                        if (!window.confirm(`Are you sure you want to make all volumes even?
+                        Things to consider:
+
+                        1. This is an experimental feature and may not work as expected. 
+                        
+                        2. It will also remove any volume changes you have made manually on your tracks.
+                        
+                        3. Spotify normalization must be ran at least once before this will work.`)) {
+                            return;
+                        }
+                        window.dispatchEvent(new CustomEvent('auto-gain'));
+                    }}
+                >
+                    {__('Even out track volumes (Extremely beta but magical) ✨')}
+                </Button>
             </div>
             <MixerContainer>
                 {tracks && tracks.map((track, index) => {

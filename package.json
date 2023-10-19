@@ -1,6 +1,6 @@
 {
   "name": "batch-lufs-measure-mixer",
-  "version": "0.1.5",
+  "version": "0.1.4",
   "private": true,
   "homepage": "https://skrap.info/audio",
   "main": "public/electron.js",
@@ -13,7 +13,7 @@
     "@mui/styled-engine-sc": "^5.11.11",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",qqqq
+    "@testing-library/user-event": "^13.5.0",
     "audiobuffer-to-wav": "^1.0.0",
     "color": "^4.2.3",
     "d3": "^7.8.3",
@@ -30,7 +30,7 @@
     "jszip": "^3.10.1",
     "memoizee": "^0.4.15",
     "moment": "^2.29.4",
-    "p-queue": "^7.3.4",
+    "p-queue": "^7.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-flags": "^0.1.18",

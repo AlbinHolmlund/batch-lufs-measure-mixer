@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useLayoutEffect } from 'react';
+import Color from 'color';
 //  import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 // Framer motion
@@ -431,21 +432,45 @@ let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
                 loudnessMeterRef.current.reset();
             }
         }}>
-            <legend>
+            <legend style={{
+                color: getLoudnessColor(shortTerm),
+                backgroundClip: 'text'
+            }}>
                 <span>Short Term</span>
                 {formatLufs(shortTerm)}
             </legend>
-            <legend>
+            <legend style={{
+                color: getLoudnessColor(momentary),
+                backgroundClip: 'text'
+            }}>
                 <span>Momentary</span>
                 {formatLufs(momentary)}
             </legend>
-            <legend>
+            <legend style={{
+                color: getLoudnessColor(integrated),
+                backgroundClip: 'text'
+            }}>
                 <span>Integrated</span>
                 {formatLufs(integrated)}
             </legend>
         </div>
     );
 };
+
+const getLoudnessColor = (lufs) => {
+    // At -14 LUFS normal green
+    // The further away from -14 red it gets, maximum at -5 and 5 (-19 and -9)
+    // The closer to -14 the more green it gets
+    const color = Color('#1DB954');
+    const diff = Math.abs(lufs - -14);
+    const maxDiff = 9;
+    const maxColor = Color('#b91d47');
+    const maxColorDiff = 5;
+    const diffPercentage = diff / maxDiff;
+    const colorDiffPercentage = diffPercentage * maxColorDiff;
+    const newColor = color.mix(maxColor, colorDiffPercentage);
+    return newColor.toString();
+}
 
 MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
     position: absolute;

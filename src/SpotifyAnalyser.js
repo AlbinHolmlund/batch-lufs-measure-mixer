@@ -14,97 +14,113 @@ const arrayBufferToHash = async (buffer) => {
     return hashHex;
 }
 
+let activeLufs = null;
+
 const getLufs = async (track, arrayBuffer) => {
-    // Queue the function
-    return await queue.add(async () => {
-        // Create a new audio context
-        // Create a new offline context
-        const audioCtx = new AudioContext();
+    if (activeLufs) {
+        await activeLufs;
 
-        // Decode the audio data with the gainNode applied
-        let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+        activeLufs = null;
+    }
 
-        const gainOfflineCtx = new OfflineAudioContext(
-            audioBuffer.numberOfChannels,
-            audioBuffer.duration * audioBuffer.sampleRate,
-            audioBuffer.sampleRate
-        );
+    const lufsPromise = new Promise(async (resolve, reject) => {
+        await queue.add(async () => {
+            // Create a new audio context
+            // Create a new offline context
+            let audioCtx = new AudioContext();
 
-        // Create a new audio buffer source
-        const gainSource = gainOfflineCtx.createBufferSource();
+            // Decode the audio data with the gainNode applied
+            let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
 
-        // Set the audio buffer to the source
-        gainSource.buffer = audioBuffer;
+            const gainOfflineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                audioBuffer.duration * audioBuffer.sampleRate,
+                audioBuffer.sampleRate
+            );
 
-        // Create a new gain node
-        const gainNode = gainOfflineCtx.createGain();
-        gainNode.gain.value = track.gainNode.gain.value;
+            // Create a new audio buffer source
+            const gainSource = gainOfflineCtx.createBufferSource();
 
-        // Set the gain node to the source
-        gainSource.connect(gainNode);
+            // Set the audio buffer to the source
+            gainSource.buffer = audioBuffer;
 
-        // Connect the gain node to the offline context
-        gainNode.connect(gainOfflineCtx.destination);
+            // Create a new gain node
+            const gainNode = gainOfflineCtx.createGain();
+            gainNode.gain.value = track.gainNode.gain.value;
 
-        // Start the source
-        gainSource.start();
+            // Set the gain node to the source
+            gainSource.connect(gainNode);
 
-        // Render the audio
-        audioBuffer = await gainOfflineCtx.startRendering();
+            // Connect the gain node to the offline context
+            gainNode.connect(gainOfflineCtx.destination);
 
-        // Close the audio context
-        if (audioCtx.close) {
-            audioCtx.close();
-            console.log('audioCtx closed');
-        }
+            // Start the source
+            gainSource.start();
 
-        console.log('audioBuffer', audioBuffer)
+            // Render the audio
+            audioBuffer = await gainOfflineCtx.startRendering();
 
-        var offlineCtx = new OfflineAudioContext(
-            audioBuffer.numberOfChannels,
-            audioBuffer.duration * audioBuffer.sampleRate,
-            audioBuffer.sampleRate
-        );
+            // Close the audio context
+            if (audioCtx.close) {
+                audioCtx.close();
+                console.log('audioCtx closed');
+            }
 
-        // Create a new audio buffer source
-        var source = offlineCtx.createBufferSource();
+            console.log('audioBuffer', audioBuffer)
 
-        // Set the audio buffer to the source
-        source.buffer = audioBuffer;
+            var offlineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                audioBuffer.duration * audioBuffer.sampleRate,
+                audioBuffer.sampleRate
+            );
 
-        // Create a new loudness meter
-        var loudnessMeter = new LoudnessMeter({
-            source: source,
-            modes: ['integrated'],
-            workerUri: window.PUBLIC_URL + '/needles-worker.js'
-        });
+            // Create a new audio buffer source
+            var source = offlineCtx.createBufferSource();
 
-        // Start the loudness meter
-        loudnessMeter.start();
+            // Set the audio buffer to the source
+            source.buffer = audioBuffer;
 
-        const lufs = await new Promise((resolve, reject) => {
-            loudnessMeter.on('dataavailable', function (event) {
-                // event.data.mode // momentary | short-term | integrated
-                // short-term means the last 3 seconds
-                // momentary means the last 400ms
-                // event.data.value // -14
-                // console.log(event.data.mode, event.data.value)
-                if (event.data.mode === 'integrated') {
-                    console.log('lufs', event.data.value)
-                    resolve(event.data.value);
-                }
+            // Create a new loudness meter
+            var loudnessMeter = new LoudnessMeter({
+                source: source,
+                modes: ['integrated'],
+                workerUri: window.PUBLIC_URL + '/needles-worker.js'
             });
+
+            // Start the loudness meter
+            loudnessMeter.start();
+
+            const lufs = await new Promise((resolve, reject) => {
+                loudnessMeter.on('dataavailable', function (event) {
+                    // event.data.mode // momentary | short-term | integrated
+                    // short-term means the last 3 seconds
+                    // momentary means the last 400ms
+                    // event.data.value // -14
+                    // console.log(event.data.mode, event.data.value)
+                    if (event.data.mode === 'integrated') {
+                        console.log('lufs', event.data.value)
+                        resolve(event.data.value);
+                    }
+                });
+            });
+
+            // Close the offline context
+            if (offlineCtx.close) {
+                offlineCtx.close();
+                console.log('offlineCtx closed');
+            }
+
+            // Resolve the lufs
+            resolve(lufs);
         });
-
-        // Close the offline context
-        if (offlineCtx.close) {
-            offlineCtx.close();
-            console.log('offlineCtx closed');
-        }
-
-        return lufs;
     });
-};
+
+    // Set activeLufs
+    activeLufs = lufsPromise;
+
+    // Await the lufs
+    return lufsPromise;
+}
 
 const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
     const updateGain = (normalizationGain) => {
@@ -212,7 +228,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         >
 
             <legend
-                class={"spotify-normalization" + (forceGain ? ' active' : '')}
+                className={"spotify-normalization" + (forceGain ? ' active' : '')}
                 style={{
                     fontSize: '0.5em',
                     cursor: 'pointer',
@@ -223,14 +239,13 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                     setForceGain(!forceGain);
                     setLoading(false);
                     setError(null);
-                    setLufs(null);
-                    setGain(false);
+                    //setLufs(null);
+                    //setGain(false);
                 }}
             >
                 <span style={{
                     // Color is spotify green (darker) if forceGain is true otherwise red
                     color: forceGain ? '#1db954' : '#b91d47',
-
                 }}>{
                         forceGain ? 'Deactivate' : 'Activate'
                     } <br />
@@ -238,7 +253,8 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                 <br />
                 {loading && <div>Analyzing track...</div>}
                 {error && <div>Error: {error.message}</div>}
-                {lufs && <div>LUFS: {lufs}</div>}
+                {lufs && <div>Loud.penalty: {lufs}</div>}
+                {gain && <div>LUFS: {gain + 14}</div>}
                 {gain && <div>Gain: {gain}</div>}
             </legend>
         </div>

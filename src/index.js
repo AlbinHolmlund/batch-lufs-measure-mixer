@@ -5,6 +5,7 @@ import App from './App';
 import { Provider } from './Context';
 import reportWebVitals from './reportWebVitals';
 
+// Render app
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render((
   <Provider>

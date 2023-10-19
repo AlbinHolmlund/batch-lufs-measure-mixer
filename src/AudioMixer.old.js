@@ -294,7 +294,7 @@ const AudioMixer = ({ files, audioContext }) => {
                     audioBufferSourceNode.connect(gainNode);
 
                     // Set the audio array source node's buffer
-                    audioBufferSourceNode.buffer = await audioContext.decodeAudioData(file.dataUri);
+                    audioBufferSourceNode.buffer = new audioContext.decodeAudioData(file.dataUri);
 
                     // Connect the gain node to the audio context's destination
                     // gainNode.connect(audioContext.destination);

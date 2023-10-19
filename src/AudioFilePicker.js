@@ -324,7 +324,7 @@ const AudioFilePicker = () => {
 
                     setTimeout(() => {
                         // Click on the box
-                        document.querySelector('.box').focus();
+                        //document.querySelector('.box').focus();
                     }, 1000);
                 });
 

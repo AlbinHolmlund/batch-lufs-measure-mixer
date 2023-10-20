@@ -166,5 +166,29 @@
         "fi": "Päällä",
         "da": "Til",
         "de": "An"
+    },
+    "Normalize all tracks": {
+        "en": "Normalize all tracks",
+        "sv": "Normalisera alla spår",
+        "no": "Normaliser alle spor",
+        "fi": "Normalisoi kaikki raidat",
+        "da": "Normaliser alle spor",
+        "de": "Alle Tracks normalisieren"
+    },
+    "Undo all volume changes (beta)": {
+        "en": "Undo all volume changes (beta)",
+        "sv": "Ångra alla volymändringar (beta)",
+        "no": "Angre alle volumendringer (beta)",
+        "fi": "Peru kaikki äänenvoimakkuuden muutokset (beta)",
+        "da": "Fortryd alle volumenændringer (beta)",
+        "de": "Alle Lautstärkeänderungen rückgängig machen (beta)"
+    },
+    "Equalize track volumes (Extremely beta) ✨": {
+        "en": "Equalize track volumes (Extremely beta) ✨",
+        "sv": "Jämställ spårvolymerna (Extremt beta) ✨",
+        "no": "Jevn ut sporvolumene (Ekstremt beta) ✨",
+        "fi": "Tasoita raidan äänenvoimakkuudet (Erittäin beta) ✨",
+        "da": "Udlign sporvolumener (Ekstremt beta) ✨",
+        "de": "Track-Lautstärken angleichen (Extrem beta) ✨"
     }
 }

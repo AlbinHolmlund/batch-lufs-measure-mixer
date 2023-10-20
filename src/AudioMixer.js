@@ -369,7 +369,7 @@ const MixerTrackName = styled(LabelEllipsis)`
 `;
 
 const MixerTrackVolume = styled.div`
-	font-size: 1.5em;
+	font-size: 1.25em;
 	font-weight: bold;
 `;
 
@@ -712,7 +712,7 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
 		margin-bottom: 0.5em;
 		flex-direction: column;
 		align-items: flex-start;
-		font-size: 0.9em;
+		font-size: 0.8em;
 		text-align: right;
 		&:after{
 			content: 'LUFS';

@@ -25,6 +25,13 @@ var getLufs = async (track, arrayBuffer) => {
 
     var lufsPromise = new Promise(async (resolve, reject) => {
         await queue.add(async () => {
+
+            await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve();
+                }, 1000);
+            });
+
             // Create a new audio context
             // Create a new offline context
             let audioCtx = new AudioContext();
@@ -86,7 +93,6 @@ var getLufs = async (track, arrayBuffer) => {
                 modes: ['integrated'],
                 workerUri: window.PUBLIC_URL + '/needles-worker.js'
             });
-
             // Start the loudness meter
             loudnessMeter.start();
 
@@ -99,17 +105,20 @@ var getLufs = async (track, arrayBuffer) => {
                     // console.log(event.data.mode, event.data.value)
                     if (event.data.mode === 'integrated') {
                         // Cleanup
+                        source.buffer = null;
+
                         if (loudnessMeter && loudnessMeter.stop && loudnessMeter.state !== 'inactive') {
                             loudnessMeter.stop();
                         }
-                        if (source.disconnect) source.disconnect();
-                        if (gainNode.disconnect) gainNode.disconnect();
-                        if (gainSource.disconnect) gainSource.disconnect();
 
                         // Close the offline context
                         if (offlineCtx.close) {
                             offlineCtx.close();
                             console.log('offlineCtx closed');
+                        }
+
+                        if (event.data.value === -Infinity) {
+                            reject(new Error('LUFS is -Infinity'));
                         }
 
                         console.log('lufs', event.data.value)

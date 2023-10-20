@@ -92,7 +92,7 @@ const CssGlobals = createGlobalStyle`
   body {
     background-color: #0a1929 !important;
     color: #fff;
-    padding-top: 100px;
+    //padding-top: 100px;
   }
 
   .MuiTooltip-popper {

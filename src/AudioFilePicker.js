@@ -94,6 +94,7 @@ const LanguagePicker = ({ currentLanguage, setLanguage }) => {
     return (
         <>
             <Button
+                style={{ float: 'right' }}
                 ref={buttonRef}
                 onClick={() => setOpen(true)}
             >
@@ -410,8 +411,6 @@ const AudioFilePicker = () => {
                     </Button>
 
                     <LanguagePicker currentLanguage={currentLanguage} setLanguage={setLanguage} />
-
-                    <br />
 
                     <KeepFocusToggle />
 

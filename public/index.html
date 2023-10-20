@@ -76,6 +76,10 @@
     </div>
   </div>
 
+  <div class="globe-loader">
+    Wait, loading...
+  </div>
+
   <style>
     .electron-updater {
       position: fixed;
@@ -94,6 +98,51 @@
 
     .update-error {
       display: none;
+    }
+
+    .globe-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0);
+      z-index: 99999900;
+      align-items: center;
+      justify-content: center;
+      /* hide loader by default */
+      display: flex !important;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s ease-in-out;
+    }
+
+    #root {
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    #root.loading {
+      /* make root grayscale when loading */
+      filter: grayscale(100%) !important;
+    }
+
+    .globe-loader.loading {
+      animation: pulse 1.5s infinite;
+      opacity: 1;
+    }
+
+    @keyframes pulse {
+      0% {
+        background-color: rgba(0, 0, 0, 0.55);
+      }
+
+      50% {
+        background-color: rgba(0, 0, 0, 0.6);
+      }
+
+      100% {
+        background-color: rgba(0, 0, 0, 0.55);
+      }
     }
   </style>
 </body>

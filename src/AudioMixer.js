@@ -19,56 +19,57 @@ import useLocalStorageState from './useLocalStorageState';
 import SpotifyAnalyser from './SpotifyAnalyser';
 
 import moment from 'moment';
+import { local } from 'd3';
 
 const confirmation = (message) => {
-	// Trim tabs
-	message = message.replace(/\t/g, '');
-	return window.confirm(message);
+    // Trim tabs
+    message = message.replace(/\t/g, '');
+    return window.confirm(message);
 }
 
 const closest = (el, selector) => {
-	// Walk up the DOM tree until we find a node that matches the selector or we reach the top
-	while (el) {
-		if (el.matches(selector)) {
-			return el;
-		}
-		el = el.parentElement;
-	}
-	return null;
+    // Walk up the DOM tree until we find a node that matches the selector or we reach the top
+    while (el) {
+        if (el.matches(selector)) {
+            return el;
+        }
+        el = el.parentElement;
+    }
+    return null;
 };
 
 const translateVolume = (volumeInDB) => {
-	// Convert db into gain
-	return Math.pow(10, volumeInDB / 20);
+    // Convert db into gain
+    return Math.pow(10, volumeInDB / 20);
 }
 
 const DomInjector = ({ inject, children, ...props }) => {
-	const ref = React.useRef(null);
-	const [hasInjected, setHasInjected] = useState(false);
+    const ref = React.useRef(null);
+    const [hasInjected, setHasInjected] = useState(false);
 
-	const el = useMemo(() => {
-		return <div key="dom-injector" ref={ref} {...props} />;
-	}, [props]);
+    const el = useMemo(() => {
+        return <div key="dom-injector" ref={ref} {...props} />;
+    }, [props]);
 
-	useLayoutEffect(() => {
-		var undoInject = null;
-		if (ref.current) {
-			undoInject = inject(ref.current);
-			setHasInjected(true);
-		}
-		return () => {
-			if (undoInject) {
-				undoInject();
-			}
-		}
-	}, [inject]);
+    useLayoutEffect(() => {
+        var undoInject = null;
+        if (ref.current) {
+            undoInject = inject(ref.current);
+            setHasInjected(true);
+        }
+        return () => {
+            if (undoInject) {
+                undoInject();
+            }
+        }
+    }, [inject]);
 
-	return (
-		<>
-			{!hasInjected && children}
-			{el}
-		</>
-	);
+    return (
+        <>
+            {!hasInjected && children}
+            {el}
+        </>
+    );
 }
 
 const MixerContainer = styled.div`
@@ -83,65 +84,137 @@ const MixerContainer = styled.div`
 `;
 
 const calculateZoomLevel = () => {
-	let val = window.innerWidth / (770 / 0.7);
-	let min = 0.8;
-	let max = 1.1;
-	return Math.min(Math.max(val, min), max);
+    let val = window.innerWidth / (770 / 0.7);
+    let min = 0.8;
+    let max = 1.1;
+    return Math.min(Math.max(val, min), max);
 }
 
-const useCardsZoomLevel = () => {
-	// Zoom is either localStorage.getItem('cards-zoom-level') or if the value isn't set it will instead calculate its zoom value based on the width (0.7 at 770px width)
-	const [zoomLevel, setZoomLevel] = useState(() => {
-		const zoomLevel = window.localStorage.getItem('cardsZoomLevel');
-		if (zoomLevel) {
-			return parseFloat(zoomLevel);
-		} else {
-			return calculateZoomLevel();
-		}
-	});
+const useCardsZoomLevel = (cardMultiplier) => {
+    // Zoom is either localStorage.getItem('cards-zoom-level') or if the value isn't set it will instead calculate its zoom value based on the width (0.7 at 770px width)
+    const [zoomLevel, setZoomLevel] = useState(() => {
+        const zoomLevel = window.localStorage.getItem('cardsZoomLevel2');
+        if (zoomLevel) {
+            return parseFloat(zoomLevel);
+        } else {
+            return calculateZoomLevel();
+        }
+    });
 
-	useEffect(() => {
-		/* 
-			Update zoom level when:
-			- window is resized
-			- zoom level localStorage value is changed
-		*/
-		const onResize = () => {
-			const zoomLevel = window.localStorage.getItem('cardsZoomLevel');
-			if (zoomLevel) {
-				setZoomLevel(parseFloat(zoomLevel));
-			} else {
-				setZoomLevel(calculateZoomLevel());
-			}
-		};
-		window.addEventListener('resize', onResize);
-		window.addEventListener('storage', onResize);
-		return () => {
-			window.removeEventListener('resize', onResize);
-			window.removeEventListener('storage', onResize);
-		}
-	}, []);
+    useEffect(() => {
+        /* 
+            Update zoom level when:
+            - window is resized
+            - zoom level localStorage value is changed
+        */
+        const onResize = () => {
+            const zoomLevel = window.localStorage.getItem('cardsZoomLevel2');
+            if (zoomLevel) {
+                setZoomLevel(parseFloat(zoomLevel));
+            } else {
+                setZoomLevel(calculateZoomLevel());
+            }
+        };
+        window.addEventListener('resize', onResize);
+        window.addEventListener('storage', onResize);
+        return () => {
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('storage', onResize);
+        }
+    }, []);
 
-	return zoomLevel;
+    // Example usage: window.dispatchEvent(new CustomEvent('cards-zoom-level-changed', { detail: { value: 0.8 } }));
+
+    return zoomLevel * cardMultiplier;
+}
+
+const throttle = (func, limit) => {
+    let inThrottle;
+    return function () {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+const debounce = (func, wait, immediate) => {
+    let timeout;
+    return function () {
+        const context = this;
+        const args = arguments;
+        const later = () => {
+            timeout = null;
+            if (!immediate) {
+                func.apply(context, args);
+            }
+        };
+        const callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) {
+            func.apply(context, args);
+        }
+    }
+}
+
+const useEventState = (initialValue, name) => {
+    const id = useMemo(() => {
+        return 'event-state-' + name; //'event-state-' + Math.random().toString(36).substr(2, 9);
+    }, [name]);
+    const [value, setValue] = useState(() => {
+        return parseFloat(window.localStorage.getItem(id)) || initialValue;
+    });
+    const updateLocalState = useMemo(() => {
+        return debounce((value) => {
+            localStorage.setItem(id, value);
+        }, 100);
+    }, [id]);
+    const triggerEvent = useMemo(() => {
+        return throttle((value) => {
+            window.dispatchEvent(new CustomEvent(id, { detail: { value } }));
+        }, 1000 / 30);
+    }, [id]);
+
+    useEffect(() => {
+        const listener = (e) => {
+            setValue(e.detail.value);
+        }
+        window.addEventListener(id, listener);
+        return () => {
+            window.removeEventListener(id, listener);
+        }
+    }, [id]);
+
+    return [value, (value) => {
+        updateLocalState(value);
+        triggerEvent(value);
+    }];
 }
 
 const MixerTrack = styled(({ className, children, ...props }) => {
-	const cardsZoomLevel = useCardsZoomLevel();
-	return (
-		<motion.div
-			// Make draggable
-			// drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-			// dragElastic={0.1}
-			// dragMomentum={false}
-			className={'mixer-track ' + className}
-			{...props}
-			style={{
-				zoom: cardsZoomLevel
-			}}
-		>
-			{children}
-		</motion.div>
-	);
+    const [zoomLevel] = useEventState(localStorage.getItem('zoomLevel') || 1, 'zoomLevel');
+    const cardsZoomLevel = useCardsZoomLevel(zoomLevel);
+    return (
+        <motion.div
+            // Make draggable
+            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragMomentum={true}
+            dragElastic={0.4}
+            dragTransition={{ bounceStiffness: 1000, bounceDamping: 100 }}
+
+            className={'mixer-track ' + className}
+            {...props}
+            style={{
+                zoom: cardsZoomLevel
+            }}
+        >
+            {children}
+        </motion.div >
+    );
 })`
 	position: relative;
 	display: flex;
@@ -153,7 +226,6 @@ const MixerTrack = styled(({ className, children, ...props }) => {
 	margin: 10px;
 	color: #000;
 	background-color: #fff;
-	transition: all 0.2s ease-in-out;
 	
 	min-height: 100%;
 	flex: 1 1 auto 100%;
@@ -188,99 +260,99 @@ const PlaceholderMixerTrack = styled(MixerTrack)`
 `;
 
 const MultilinePart = ({ children, topRef, onIsMultiLineChange, index, ...props }) => {
-	// Compare top offset of this compared to last topRef.current (if not null) and set isMultiLine accordingly
-	const ref = useRef(null);
+    // Compare top offset of this compared to last topRef.current (if not null) and set isMultiLine accordingly
+    const ref = useRef(null);
 
-	useEffect(() => {
-		console.log(topRef.current);
-		if (topRef.current && (topRef.current != 'found')) {
-			const isMultiLine = ref.current.offsetTop !== topRef.current.offsetTop;
-			if (isMultiLine) {
-				topRef.current = 'found';
-				onIsMultiLineChange(isMultiLine ? index : false);
-			}
-		}
-		if (topRef.current != 'found') {
-			topRef.current = ref.current;
-		}
-	}, [children, topRef, onIsMultiLineChange]);
+    useEffect(() => {
+        console.log(topRef.current);
+        if (topRef.current && (topRef.current != 'found')) {
+            const isMultiLine = ref.current.offsetTop !== topRef.current.offsetTop;
+            if (isMultiLine) {
+                topRef.current = 'found';
+                onIsMultiLineChange(isMultiLine ? index : false);
+            }
+        }
+        if (topRef.current != 'found') {
+            topRef.current = ref.current;
+        }
+    }, [children, topRef, onIsMultiLineChange]);
 
-	return (
-		<span ref={ref} {...props}>
-			{children}
-		</span>
-	);
+    return (
+        <span ref={ref} {...props}>
+            {children}
+        </span>
+    );
 };
 
 const LabelEllipsis = ({ text, ...props }) => {
-	const topRef = useRef(null);
-	const [isMultiLine, setIsMultiLine] = useState(false);
+    const topRef = useRef(null);
+    const [isMultiLine, setIsMultiLine] = useState(false);
 
-	console.log('isMultiLine', isMultiLine);
+    console.log('isMultiLine', isMultiLine);
 
-	const ellipsisEnd = useMemo(() => {
-		topRef.current = null;
-		const childrenSpans = text.split(' ').map((word, i) => (
-			<MultilinePart
-				key={i + '_' + word}
-				index={i}
-				topRef={topRef}
-				onIsMultiLineChange={setIsMultiLine}
-			>
-				{word + ' '}
-			</MultilinePart>
-		));
-		return (
-			<span
-				style={{
-					whiteSpace: isMultiLine ? 'nowrap' : '',
-					overflow: 'hidden',
-					textOverflow: 'ellipsis',
-					display: 'block'
-				}}
-			>
-				{childrenSpans}
-			</span>
-		);
-	}, [text, isMultiLine]);
+    const ellipsisEnd = useMemo(() => {
+        topRef.current = null;
+        const childrenSpans = text.split(' ').map((word, i) => (
+            <MultilinePart
+                key={i + '_' + word}
+                index={i}
+                topRef={topRef}
+                onIsMultiLineChange={setIsMultiLine}
+            >
+                {word + ' '}
+            </MultilinePart>
+        ));
+        return (
+            <span
+                style={{
+                    whiteSpace: isMultiLine ? 'nowrap' : '',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block'
+                }}
+            >
+                {childrenSpans}
+            </span>
+        );
+    }, [text, isMultiLine]);
 
-	const ellipsisStart = useMemo(() => {
-		if (!isMultiLine) {
-			return null;
-		}
-		// Build span list starting from isMultiLine (index)
-		const childrenSpans = text.split(' ').slice(isMultiLine - 1).map((word, i) => (
-			<span
-				key={i + '_' + word}
-				style={{
-					direction: 'ltr',
-					display: 'inline-block'
-				}}
-			>
-				{word}<ReactNbsp />
-			</span>
-		)).reverse();
-		return (
-			<span
-				style={{
-					whiteSpace: 'nowrap',
-					overflow: 'hidden',
-					textOverflow: 'ellipsis',
-					display: 'block',
-					direction: 'rtl'
-				}}
-			>
-				{childrenSpans}
-			</span>
-		);
-	}, [text, isMultiLine]);
+    const ellipsisStart = useMemo(() => {
+        if (!isMultiLine) {
+            return null;
+        }
+        // Build span list starting from isMultiLine (index)
+        const childrenSpans = text.split(' ').slice(isMultiLine - 1).map((word, i) => (
+            <span
+                key={i + '_' + word}
+                style={{
+                    direction: 'ltr',
+                    display: 'inline-block'
+                }}
+            >
+                {word}<ReactNbsp />
+            </span>
+        )).reverse();
+        return (
+            <span
+                style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block',
+                    direction: 'rtl'
+                }}
+            >
+                {childrenSpans}
+            </span>
+        );
+    }, [text, isMultiLine]);
 
-	return (
-		<div {...props} title={text}>
-			{ellipsisEnd}
-			{ellipsisStart}
-		</div>
-	);
+    return (
+        <div {...props} title={text}>
+            {ellipsisEnd}
+            {ellipsisStart}
+        </div>
+    );
 }
 
 const MixerTrackName = styled(LabelEllipsis)`
@@ -302,192 +374,206 @@ const MixerTrackVolume = styled.div`
 `;
 
 const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, volumeDependantChildren, ...props }) => {
-	const [volumeInDB, setVolumeInDB] = useLocalStorageState((file && file.name || 'none') + '_volume', 0);
-	const [volumeInDBTemp, setVolumeInDBTemp] = useState(0);
-	const [trackGainModifiers, setTrackGainModifiers] = useLocalStorageState((file && file.name || 'none') + '_trackGainModifiers', {});
+    const [volumeInDB, setVolumeInDB] = useLocalStorageState((file && file.name || 'none') + '_volume', 0);
+    const [volumeInDBTemp, setVolumeInDBTemp] = useState(0);
+    const [trackGainModifiers, setTrackGainModifiers] = useLocalStorageState((file && file.name || 'none') + '_trackGainModifiers', {});
 
-	useEffect(() => {
-		if (!volumeInDB || isNaN(volumeInDB)) {
-			setVolumeInDB(0);
-		}
-	}, [volumeInDB]);
+    useEffect(() => {
+        if (!volumeInDB || isNaN(volumeInDB)) {
+            setVolumeInDB(0);
+        }
+    }, [volumeInDB]);
 
-	useEffect(() => {
-		onChange && onChange(
-			Object.values(trackGainModifiers).reduce((a, b) => a + b, volumeInDB)
-		);
-	}, [volumeInDB, onChange, trackGainModifiers]);
+    useEffect(() => {
+        onChange && onChange(
+            Object.values(trackGainModifiers).reduce((a, b) => a + b, volumeInDB)
+        );
+    }, [volumeInDB, onChange, trackGainModifiers]);
 
-	useEffect(() => {
-		setVolumeInDBTemp(volumeInDB);
-	}, [volumeInDB]);
+    useEffect(() => {
+        setVolumeInDBTemp(volumeInDB);
+    }, [volumeInDB]);
 
 
-	useEffect(() => {
-		// Listen for the highestGain event
-		const listener = async (e) => {
-			window.dispatchEvent(
-				new CustomEvent('infoMessage', {
-					detail: {
-						id: 'betaMessage',
-						date: moment().format('YYYY-MM-DD HH:mm:ss'),
-						message: (
-							<>
-								<legend><strong>Things to consider:</strong></legend>
-								<br />
-								1. This (the <strong>'Equalize Track Volumes'</strong> feature) is an <strong>experimental feature</strong> and may not work as expected. <br />
-								2. It will also <strong>remove any volume</strong> changes you have made manually on your tracks. <br />
-								3. It will <strong>turn off spotify normalization</strong> for all tracks as well when it is done adjusting the volumes.
-							</>
-						)
-					},
-				})
-			);
+    useEffect(() => {
+        // Listen for the highestGain event
+        const listener = async (e) => {
+            window.dispatchEvent(
+                new CustomEvent('infoMessage', {
+                    detail: {
+                        id: 'betaMessage',
+                        date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                        message: (
+                            <>
+                                <legend><strong>Things to consider:</strong></legend>
+                                <br />
+                                1. This (the <strong>'Equalize Track Volumes'</strong> feature) is an <strong>experimental feature</strong> and may not work as expected. <br />
+                                2. It will also <strong>remove any volume</strong> changes you have made manually on your tracks. <br />
+                                3. It will <strong>turn off spotify normalization</strong> for all tracks as well when it is done adjusting the volumes.
+                            </>
+                        )
+                    },
+                })
+            );
 
-			// Reset counter
-			// localStorage.setItem('gains-received-counted', 0);
+            // Reset counter
+            // localStorage.setItem('gains-received-counted', 0);
 
-			// Call the undo gain event and wait for it to finish
-			window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+            // Call the undo gain event and wait for it to finish
+            window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+            if (!document.querySelector('#root').className.includes('loading')) {
+                document.querySelector('#root').className += ' loading';
+            }
+            if (!document.querySelector('.globe-loader').className.includes('loading')) {
+                document.querySelector('.globe-loader').className += ' loading';
+            }
 
-			await new Promise((resolve) => {
-				requestAnimationFrame(() => {
-					resolve();
-				});
-			});
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    resolve();
+                });
+            });
 
-			// Make sure that there isnt any tracks that isnt normalized yet
-			await new Promise((resolve) => {
-				[...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+            // Make sure that there isnt any tracks that isnt normalized yet
+            await new Promise((resolve) => {
+                [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
 
-				const interval = setInterval(() => {
-					if ([...document.querySelectorAll('.spotify-normalization:not(.active)')].length === 0) {
-						console.log('done');
-						clearInterval(interval);
-						resolve();
-					}
-				}, 20);
-			});
+                const interval = setInterval(() => {
+                    if ([...document.querySelectorAll('.spotify-normalization:not(.active)')].length === 0) {
+                        console.log('done');
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 20);
+            });
 
-			// Read counter
-			// const gainsReceivedCounted = parseInt(localStorage.getItem('gains-received-counted'));
-			// console.log('gainsReceivedCounted', gainsReceivedCounted);
+            // Read counter
+            // const gainsReceivedCounted = parseInt(localStorage.getItem('gains-received-counted'));
+            // console.log('gainsReceivedCounted', gainsReceivedCounted);
 
-			// Undo normalization
-			// [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+            // Undo normalization
+            // [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
 
-			// updateGain(gainDifference);
-			setTimeout(async () => {
-				// Read what the highest gain is
-				// const { highestGain } = e.detail;
-				// console.log('highestGain2', highestGain)
+            // updateGain(gainDifference);
+            setTimeout(async () => {
+                // Read what the highest gain is
+                // const { highestGain } = e.detail;
+                // console.log('highestGain2', highestGain)
 
-				const highestGain = window.highestGain;
+                const highestGain = window.highestGain;
 
-				// Do the gain calculation
+                // Do the gain calculation
 
-				// Calc8lagte diference between highest gain and current gain
-				let gainDifference = window.tracks[file.index].gain - highestGain;
-				gainDifference = Math.round(gainDifference * 10) / 10;
+                // Calc8lagte diference between highest gain and current gain
+                let gainDifference = window.tracks[file.index].gain - highestGain;
+                gainDifference = Math.round(gainDifference * 10) / 10;
 
-				console.log('file', file);
+                console.log('file', file);
 
-				// Update gain
-				console.log('gainDifference', gainDifference)
+                // Update gain
+                console.log('gainDifference', gainDifference)
 
-				setVolumeInDB(gainDifference || 0);
-				setVolumeInDBTemp(gainDifference || 0);
+                console.log('done loading normalizer...');
+                if (document.querySelector('#root').className.includes('loading')) {
+                    document.querySelector('#root').className = document.querySelector('#root').className.replace(' loading', '');
+                }
+                if (document.querySelector('.globe-loader').className.includes('loading')) {
+                    document.querySelector('.globe-loader').className = document.querySelector('.globe-loader').className.replace(' loading', '');
+                }
 
-				// Click all normalization buttons again
-				setTimeout(() => {
-					[...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
-				}, 1);
-			}, 1);
-		}
-		window.addEventListener('auto-gain', listener);
-		return () => {
-			window.removeEventListener('auto-gain', listener);
-		};
-	}, []);
+                setVolumeInDB(gainDifference || 0);
+                setVolumeInDBTemp(gainDifference || 0);
 
-	useEffect(() => {
-		// Listen for window audio-mixer-undo-all-gains event
-		const listener = (e) => {
-			setVolumeInDB(0);
-			setVolumeInDBTemp(0);
-		};
-		window.addEventListener('audio-mixer-undo-all-gains', listener);
-		return () => {
-			window.removeEventListener('audio-mixer-undo-all-gains', listener);
-		};
-	}, []);
+                // Click all normalization buttons again
+                setTimeout(() => {
+                    [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+                }, 1);
+            }, 1);
+        }
+        window.addEventListener('auto-gain', listener);
+        return () => {
+            window.removeEventListener('auto-gain', listener);
+        };
+    }, []);
 
-	return (
-		<div className={className}>
-			{children}
-			{volumeDependantChildren && volumeDependantChildren({
-				volumeInDB,
-				setVolumeInDB,
-				setTrackGainModifiers,
-			})}
-			<input
-				type="range"
-				orient="vertical"
-				step="0.1"
-				min="-5"
-				max="5"
-				style={{
-					display: 'block',
-					margin: '10px auto'
-				}}
-				onChange={(e) => {
-					let volumeInDB = parseFloat(e.target.value);
+    useEffect(() => {
+        // Listen for window audio-mixer-undo-all-gains event
+        const listener = (e) => {
+            setVolumeInDB(0);
+            setVolumeInDBTemp(0);
+        };
+        window.addEventListener('audio-mixer-undo-all-gains', listener);
+        return () => {
+            window.removeEventListener('audio-mixer-undo-all-gains', listener);
+        };
+    }, []);
 
-					if (!volumeInDB || isNaN(volumeInDB)) {
-						volumeInDB = 0;
-					} else if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
-						volumeInDB = 0;
-					}
+    return (
+        <div className={className}>
+            {children}
+            {volumeDependantChildren && volumeDependantChildren({
+                volumeInDB,
+                setVolumeInDB,
+                setTrackGainModifiers,
+            })}
+            <input
+                type="range"
+                orient="vertical"
+                step="0.1"
+                min="-5"
+                max="5"
+                style={{
+                    display: 'block',
+                    margin: '10px auto'
+                }}
+                onChange={(e) => {
+                    let volumeInDB = parseFloat(e.target.value);
 
-					setVolumeInDB(volumeInDB);
-				}}
-				onDoubleClick={() => {
-					setVolumeInDB(0);
-				}}
-				value={volumeInDB}
-			/>
-			<input
-				type="number"
-				value={`${volumeInDBTemp}`}
-				onChange={(e) => {
-					let volumeInDB = e.target.value;
+                    if (!volumeInDB || isNaN(volumeInDB)) {
+                        volumeInDB = 0;
+                    } else if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
+                        volumeInDB = 0;
+                    }
 
-					setVolumeInDBTemp(volumeInDB);
-				}}
-				onBlur={(e) => {
-					let volumeInDB = parseFloat(e.target.value);
+                    setVolumeInDB(volumeInDB);
+                }}
+                onDoubleClick={() => {
+                    setVolumeInDB(0);
+                }}
+                value={volumeInDB}
+            />
+            <input
+                type="number"
+                value={`${volumeInDBTemp}`}
+                onChange={(e) => {
+                    let volumeInDB = e.target.value;
 
-					if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
-						volumeInDB = 0;
-					}
+                    setVolumeInDBTemp(volumeInDB);
+                }}
+                onBlur={(e) => {
+                    let volumeInDB = parseFloat(e.target.value);
 
-					setVolumeInDB(volumeInDB);
-				}}
-			/>
-			<div>{
-				volumeInDB > 0 ? `+${volumeInDB} dB` : `${volumeInDB} dB`
-			}</div>
-			<div style={{
-				fontSize: '0.5em',
-			}}>
-				{Object.keys(trackGainModifiers).map((key) => (
-					<div key={key}>
-						{key}: {trackGainModifiers[key]} dB
-					</div>
-				))}
-			</div>
-		</div>
-	)
+                    if (volumeInDB > 5 && !window.confirm('Are you sure you want to set the volume to more than 5 dB, it can be very loud?')) {
+                        volumeInDB = 0;
+                    }
+
+                    setVolumeInDB(volumeInDB);
+                }}
+            />
+            <div>{
+                volumeInDB > 0 ? `+${volumeInDB} dB` : `${volumeInDB} dB`
+            }</div>
+            <div style={{
+                fontSize: '0.5em',
+            }}>
+                {Object.keys(trackGainModifiers).map((key) => (
+                    <div key={key}>
+                        {key}: {trackGainModifiers[key]} dB
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
 })`
 	position: relative;
 	width: 100%;
@@ -501,106 +587,106 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
 `;
 
 const formatLufs = (lufs) => {
-	// Lock to 1 decimal
-	// Example: 1.0, 0.5, 0.0, -0.5, -1.0, 7.6
-	return (Math.round(lufs * 10) / 10).toFixed(1);
+    // Lock to 1 decimal
+    // Example: 1.0, 0.5, 0.0, -0.5, -1.0, 7.6
+    return (Math.round(lufs * 10) / 10).toFixed(1);
 }
 
 
 let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
-	const loudnessMeterRef = useRef();
-	const [shortTerm, setShortTerm] = useState(0);
-	const [momentary, setMomentary] = useState(0);
-	const [integrated, setIntegrated] = useState(0);
+    const loudnessMeterRef = useRef();
+    const [shortTerm, setShortTerm] = useState(0);
+    const [momentary, setMomentary] = useState(0);
+    const [integrated, setIntegrated] = useState(0);
 
-	useEffect(() => {
-		if (gainNode) {
-			var loudnessMeter = new LoudnessMeter({
-				source: gainNode,
-				workerUri: window.PUBLIC_URL + '/needles-worker.js'
-			});
-			loudnessMeter.on('dataavailable', function (event) {
-				// event.data.mode // momentary | short-term | integrated
-				// short-term means the last 3 seconds
-				// momentary means the last 400ms
-				// event.data.value // -14
-				// console.log(event.data.mode, event.data.value)
-				// if (event.data.mode === 'short-term') {
-				if (event.data.value > -Infinity) {
-					if (event.data.mode === 'short-term') {
-						setShortTerm(event.data.value);
-					} else if (event.data.mode === 'momentary') {
-						setMomentary(event.data.value);
-					} else if (event.data.mode === 'integrated') {
-						setIntegrated(event.data.value);
-					}
-				} else {
-					if (event.data.mode === 'short-term') {
-						setShortTerm(0);
-					} else if (event.data.mode === 'momentary') {
-						setMomentary(0);
-					} else if (event.data.mode === 'integrated') {
-						setIntegrated(0);
-					}
-				}
-			});
-			loudnessMeter.start()
-			loudnessMeterRef.current = loudnessMeter;
-			return () => {
-				loudnessMeter.stop();
-				setShortTerm(0);
-				setMomentary(0);
-				setIntegrated(0);
-			};
-		}
-	}, [gainNode]);
+    useEffect(() => {
+        if (gainNode) {
+            var loudnessMeter = new LoudnessMeter({
+                source: gainNode,
+                workerUri: window.PUBLIC_URL + '/needles-worker.js'
+            });
+            loudnessMeter.on('dataavailable', function (event) {
+                // event.data.mode // momentary | short-term | integrated
+                // short-term means the last 3 seconds
+                // momentary means the last 400ms
+                // event.data.value // -14
+                // console.log(event.data.mode, event.data.value)
+                // if (event.data.mode === 'short-term') {
+                if (event.data.value > -Infinity) {
+                    if (event.data.mode === 'short-term') {
+                        setShortTerm(event.data.value);
+                    } else if (event.data.mode === 'momentary') {
+                        setMomentary(event.data.value);
+                    } else if (event.data.mode === 'integrated') {
+                        setIntegrated(event.data.value);
+                    }
+                } else {
+                    if (event.data.mode === 'short-term') {
+                        setShortTerm(0);
+                    } else if (event.data.mode === 'momentary') {
+                        setMomentary(0);
+                    } else if (event.data.mode === 'integrated') {
+                        setIntegrated(0);
+                    }
+                }
+            });
+            loudnessMeter.start()
+            loudnessMeterRef.current = loudnessMeter;
+            return () => {
+                loudnessMeter.stop();
+                setShortTerm(0);
+                setMomentary(0);
+                setIntegrated(0);
+            };
+        }
+    }, [gainNode]);
 
-	return (
-		<div {...props} onClick={(e) => {
-			e.stopPropagation();
-			// Reset the meter
-			if (loudnessMeterRef.current) {
-				loudnessMeterRef.current.reset();
-			}
-		}}>
-			<legend style={{
-				color: getLoudnessColor(shortTerm),
-				backgroundClip: 'text'
-			}}>
-				<span>Short Term</span>
-				{formatLufs(shortTerm)}
-			</legend>
-			<legend style={{
-				color: getLoudnessColor(momentary),
-				backgroundClip: 'text'
-			}}>
-				<span>Momentary</span>
-				{formatLufs(momentary)}
-			</legend>
-			<legend style={{
-				color: getLoudnessColor(integrated),
-				backgroundClip: 'text'
-			}}>
-				<span>Integrated</span>
-				{formatLufs(integrated)}
-			</legend>
-		</div>
-	);
+    return (
+        <div {...props} onClick={(e) => {
+            e.stopPropagation();
+            // Reset the meter
+            if (loudnessMeterRef.current) {
+                loudnessMeterRef.current.reset();
+            }
+        }}>
+            <legend style={{
+                color: getLoudnessColor(shortTerm),
+                backgroundClip: 'text'
+            }}>
+                <span>Short Term</span>
+                {formatLufs(shortTerm)}
+            </legend>
+            <legend style={{
+                color: getLoudnessColor(momentary),
+                backgroundClip: 'text'
+            }}>
+                <span>Momentary</span>
+                {formatLufs(momentary)}
+            </legend>
+            <legend style={{
+                color: getLoudnessColor(integrated),
+                backgroundClip: 'text'
+            }}>
+                <span>Integrated</span>
+                {formatLufs(integrated)}
+            </legend>
+        </div>
+    );
 };
 
 const getLoudnessColor = (lufs) => {
-	// At -14 LUFS normal green
-	// The further away from -14 red it gets, maximum at -5 and 5 (-19 and -9)
-	// The closer to -14 the more green it gets
-	const color = Color('#1DB954');
-	const diff = Math.abs(lufs - -14);
-	const maxDiff = 9;
-	const maxColor = Color('#b91d47');
-	const maxColorDiff = 5;
-	const diffPercentage = diff / maxDiff;
-	const colorDiffPercentage = diffPercentage * maxColorDiff;
-	const newColor = color.mix(maxColor, colorDiffPercentage);
-	return newColor.toString();
+    // At -14 LUFS normal green
+    // The further away from -14 red it gets, maximum at -5 and 5 (-19 and -9)
+    // The closer to -14 the more green it gets
+    const color = Color('#1DB954');
+    const diff = Math.abs(lufs - -14);
+    const maxDiff = 9;
+    const maxColor = Color('#b91d47');
+    const maxColorDiff = 5;
+    const diffPercentage = diff / maxDiff;
+    const colorDiffPercentage = diffPercentage * maxColorDiff;
+    const newColor = color.mix(maxColor, colorDiffPercentage);
+    return newColor.toString();
 }
 
 MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
@@ -638,442 +724,454 @@ MixerTrackAnalyzer = styled(MixerTrackAnalyzer)`
 `;
 
 const decodeAudioData = (arrayBuffer, audioCtx) => {
-	return new Promise((resolve, reject) => {
-		audioCtx.decodeAudioData(arrayBuffer.slice(0), function (buffer) {
-			resolve(buffer);
-		}, function (e) {
-			reject(e);
-		});
-	});
+    return new Promise((resolve, reject) => {
+        audioCtx.decodeAudioData(arrayBuffer.slice(0), function (buffer) {
+            resolve(buffer);
+        }, function (e) {
+            reject(e);
+        });
+    });
 };
 
 const exportAudioBuffer = async (arrayBuffer, fileName, volumeInDB, returnValue) => {
-	// Create a new offline context
-	const audioCtx = new AudioContext();
+    // Create a new offline context
+    const audioCtx = new AudioContext();
 
-	// Decode the audio data
-	const audioBuffer = await decodeAudioData(arrayBuffer, audioCtx);
+    // Decode the audio data
+    const audioBuffer = await decodeAudioData(arrayBuffer, audioCtx);
 
-	console.log('exportAudioBuffer', audioBuffer);
+    console.log('exportAudioBuffer', audioBuffer);
 
-	let offlineCtx = new OfflineAudioContext(
-		audioBuffer.numberOfChannels, // 2
-		audioBuffer.duration * audioBuffer.sampleRate, // 44100
-		audioBuffer.sampleRate, // 44100
-	);
-	let bufferSource = offlineCtx.createBufferSource();
-	let gainNode = offlineCtx.createGain();
+    let offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels, // 2
+        audioBuffer.duration * audioBuffer.sampleRate, // 44100
+        audioBuffer.sampleRate, // 44100
+    );
+    let bufferSource = offlineCtx.createBufferSource();
+    let gainNode = offlineCtx.createGain();
 
-	bufferSource.buffer = audioBuffer;
-	bufferSource.connect(gainNode);
-	gainNode.connect(offlineCtx.destination);
-	gainNode.gain.value = volumeInDB;
+    bufferSource.buffer = audioBuffer;
+    bufferSource.connect(gainNode);
+    gainNode.connect(offlineCtx.destination);
+    gainNode.gain.value = volumeInDB;
 
-	bufferSource.start();
+    bufferSource.start();
 
-	return offlineCtx.startRendering().then(function (renderedBuffer) {
-		// Convert the audio buffer to a blob
-		const wav = toWav(renderedBuffer);
-		const blob = new Blob([wav], { type: 'audio/wav' });
+    return offlineCtx.startRendering().then(function (renderedBuffer) {
+        // Convert the audio buffer to a blob
+        const wav = toWav(renderedBuffer);
+        const blob = new Blob([wav], { type: 'audio/wav' });
 
-		if (returnValue) {
-			return blob;
-		}
+        if (returnValue) {
+            return blob;
+        }
 
-		// Create a link to download the blob
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.style.display = 'none';
-		a.href = url;
-		a.download = fileName;
-		document.body.appendChild(a);
-		a.click();
-		// window.URL.revokeObjectURL(url);
-		console.log('done', url);
-	});
+        // Create a link to download the blob
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        // window.URL.revokeObjectURL(url);
+        console.log('done', url);
+    });
 };
 
 // Only one mixer at a time, and it connects to the audio context via props. The volume is based on dB, and the slider is based on a linear scale. Apply volume to the audio as a step before sending it to the audio context.
 const AudioMixer = ({ files, audioContext, otherTools }) => {
-	const { __ } = useLanguage();
+    const [zoomLevel, setZoomLevel] = useEventState(1, 'zoomLevel');
 
-	// Tracks contains a gain node and an audio buffer source node
-	// So to set the +-5 dB volume, we need to set the gain node's gain value on value change
-	const [tracks, setTracks] = useState(null);
-	const [highPerfMode, setHighPerfMode] = useState(false);
-	const activeTrackRef = React.useRef(null);
+    const { __ } = useLanguage();
 
-	useEffect(() => {
-		(async () => {
-			if (files && audioContext && !tracks) {
-				const fileNodesPromises = files.map(async (file, index) => {
-					file = await file;  // New async approach
+    // Tracks contains a gain node and an audio buffer source node
+    // So to set the +-5 dB volume, we need to set the gain node's gain value on value change
+    const [tracks, setTracks] = useState(null);
+    const [highPerfMode, setHighPerfMode] = useState(false);
+    const activeTrackRef = React.useRef(null);
 
-					// Create a gain node
-					try {
-						const gainNode = audioContext.createGain();
+    useEffect(() => {
+        (async () => {
+            if (files && audioContext && !tracks) {
+                const fileNodesPromises = files.map(async (file, index) => {
+                    file = await file;  // New async approach
 
-						// Apply the file data to a new audio dom element and then connect it to the gain node
-						// file.dataUrl
-						const audio = document.createElement('audio');
-						audio.controls = true;
-						audio.loop = true;
-						audio.autoplay = true;
-						audio.muted = true;
+                    // Create a gain node
+                    try {
+                        const gainNode = audioContext.createGain();
 
-						// Add source
-						const source = document.createElement('source');
-						source.src = file.dataUri;
-						source.type = 'audio/wav';
+                        // Apply the file data to a new audio dom element and then connect it to the gain node
+                        // file.dataUrl
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.loop = true;
+                        audio.autoplay = true;
+                        audio.muted = true;
 
-						audio.appendChild(source);
+                        // Add source
+                        const source = document.createElement('source');
+                        source.src = file.dataUri;
+                        source.type = 'audio/wav';
 
-						const audioSource = audioContext.createMediaElementSource(audio);
-						audioSource.connect(gainNode);
+                        audio.appendChild(source);
 
-						// Connect gainNode to a special node that we will use to mute the track
-						const muteNode = audioContext.createGain();
-						muteNode.gain.value = 0; // 0 = muted, 1 = unmuted
-						gainNode.connect(muteNode);
+                        const audioSource = audioContext.createMediaElementSource(audio);
+                        audioSource.connect(gainNode);
 
-						// Connect the mute node to the audio context destination
-						muteNode.connect(audioContext.target || audioContext.destination);
+                        // Connect gainNode to a special node that we will use to mute the track
+                        const muteNode = audioContext.createGain();
+                        muteNode.gain.value = 0; // 0 = muted, 1 = unmuted
+                        gainNode.connect(muteNode);
 
-						return {
-							index,
-							name: file.name,
-							// Cloned buffer data
-							audioData: file.data,
-							// audioBuffer: await audioContext.decodeAudioData(file.data),
-							audioBufferSourceNode: audioSource,
-							audio,
-							gainNode,
-							muteNode,
-							mute: () => {
-								// Ramp down the gain value to 0
-								muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
-								// Other ramps are available
-								// muteNode.gain.exponentialRampToValueAtTime(0, audioContext.currentTime + 0.1);
-								// muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
-							},
-							unmute: () => {
-								// Ramp up the gain value to 1
-								muteNode.gain.setTargetAtTime(1, audioContext.currentTime, 0.1);
-							}
-						};
-					} catch (e) {
-						console.log('error', e);
-					}
+                        // Connect the mute node to the audio context destination
+                        muteNode.connect(audioContext.target || audioContext.destination);
 
-				});
+                        return {
+                            index,
+                            name: file.name,
+                            // Cloned buffer data
+                            audioData: file.data,
+                            // audioBuffer: await audioContext.decodeAudioData(file.data),
+                            audioBufferSourceNode: audioSource,
+                            audio,
+                            gainNode,
+                            muteNode,
+                            mute: () => {
+                                // Ramp down the gain value to 0
+                                muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
+                                // Other ramps are available
+                                // muteNode.gain.exponentialRampToValueAtTime(0, audioContext.currentTime + 0.1);
+                                // muteNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.1);
+                            },
+                            unmute: () => {
+                                // Ramp up the gain value to 1
+                                muteNode.gain.setTargetAtTime(1, audioContext.currentTime, 0.1);
+                            }
+                        };
+                    } catch (e) {
+                        console.log('error', e);
+                    }
 
-				// const fileNodes = await Promise.all(fileNodesPromises);
+                });
 
-				// Set the tracks state
-				// setTracks(fileNodes);
+                // const fileNodes = await Promise.all(fileNodesPromises);
 
-				// Set array of correct length
-				if (tracks === null) {
-					setTracks(Array(files.length).fill(null));
-				}
+                // Set the tracks state
+                // setTracks(fileNodes);
 
-				fileNodesPromises.forEach(async (fileNodePromise) => {
-					const fileNode = await fileNodePromise;
-					setTracks((tracks) => {
-						// Replace at index
-						tracks[fileNode.index] = fileNode;
-						window.tracks = tracks;
-						return [...tracks];
-					});
-				});
-			}
-		})();
-	}, [files, tracks, audioContext]);
+                // Set array of correct length
+                if (tracks === null) {
+                    setTracks(Array(files.length).fill(null));
+                }
 
-	const handlePlay = (track) => {
-		// Pause current track
-		if (activeTrackRef.current) {
-			// Disconnect
-			/*activeTrackRef.current.muteNode.disconnect();
-			activeTrackRef.current = null;*/
-			activeTrackRef.current.mute();
-			closest(activeTrackRef.current.audio, '.mixer-track').classList.remove('active');
-		}
+                fileNodesPromises.forEach(async (fileNodePromise) => {
+                    const fileNode = await fileNodePromise;
+                    setTracks((tracks) => {
+                        // Replace at index
+                        tracks[fileNode.index] = fileNode;
+                        window.tracks = tracks;
+                        return [...tracks];
+                    });
+                });
+            }
+        })();
+    }, [files, tracks, audioContext]);
 
-		// Connect
-		// track.muteNode.connect(audioContext.destination);
-		track.unmute();
-		// Play if not playing
-		if (track.audio.paused) {
-			track.audio.play();
-		}
+    const handlePlay = (track) => {
+        // Pause current track
+        if (activeTrackRef.current) {
+            // Disconnect
+            /*activeTrackRef.current.muteNode.disconnect();
+            activeTrackRef.current = null;*/
+            activeTrackRef.current.mute();
+            closest(activeTrackRef.current.audio, '.mixer-track').classList.remove('active');
+        }
 
-		// Set the active track ref
-		activeTrackRef.current = track;
+        // Connect
+        // track.muteNode.connect(audioContext.destination);
+        track.unmute();
+        // Play if not playing
+        if (track.audio.paused) {
+            track.audio.play();
+        }
 
-		closest(track.audio, '.mixer-track').classList.add('active');
+        // Set the active track ref
+        activeTrackRef.current = track;
 
-		// Set analyser node to this
-		// analyserNode.current = track.gainNode;
-	}
+        closest(track.audio, '.mixer-track').classList.add('active');
 
-	const handleStop = (track) => {
-		// Disconnect
-		// track.muteNode.disconnect();
-		track.mute();
-		closest(track.audio, '.mixer-track').classList.remove('active');
+        // Set analyser node to this
+        // analyserNode.current = track.gainNode;
+    }
 
-		// Set the active track ref
-		activeTrackRef.current = null;
-	}
+    const handleStop = (track) => {
+        // Disconnect
+        // track.muteNode.disconnect();
+        track.mute();
+        closest(track.audio, '.mixer-track').classList.remove('active');
 
-	return (
-		<>
-			<div>
-				<AudioVisualizer
-					audioContext={audioContext}
-				/>
+        // Set the active track ref
+        activeTrackRef.current = null;
+    }
 
-				{tracks && tracks.length ? (
-					<>
-						<Button
-							onClick={() => {
-								// Export all
-								setHighPerfMode(true);
-								(async () => {
-									var zip = new JSZip();
-									var blobs = await Promise.all(tracks.map((track) => {
-										// Based track.audioData
-										const audioBuffer = track.audioData;
-										return exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value, true);
-									}));
+    return (
+        <>
+            <div>
+                <AudioVisualizer
+                    audioContext={audioContext}
+                />
 
-									blobs.forEach((blob, index) => {
-										zip.file(tracks[index].name, blob);
-									});
+                {tracks && tracks.length ? (
+                    <>
+                        <Button
+                            onClick={() => {
+                                // Export all
+                                setHighPerfMode(true);
+                                (async () => {
+                                    var zip = new JSZip();
+                                    var blobs = await Promise.all(tracks.map((track) => {
+                                        // Based track.audioData
+                                        const audioBuffer = track.audioData;
+                                        return exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value, true);
+                                    }));
 
-									zip.generateAsync({ type: 'blob' }).then(function (content) {
-										// see FileSaver.js
-										saveAs(content, 'audio.zip')
+                                    blobs.forEach((blob, index) => {
+                                        zip.file(tracks[index].name, blob);
+                                    });
 
-										setHighPerfMode(false);
-									});
-								})();
-							}}
-						>
-							{__('Export all')}
-						</Button>
-						<Button
-							onClick={() => {
-								// highPerfMode
-								setHighPerfMode(!highPerfMode);
-							}}
-						>
-							{__(highPerfMode ? 'Enable LUFS meters' : 'Disable LUFS meters')}
-						</Button>
+                                    zip.generateAsync({ type: 'blob' }).then(function (content) {
+                                        // see FileSaver.js
+                                        saveAs(content, 'audio.zip')
 
-						<Button
-							style={{
-								// Spotify green
-								// color: '#1DB954',
-								// filter: 'brightness(1.5)',
-								// Make color 50% brighter
-								color: Color('#1DB954').lighten(0.5).toString(),
-							}}
-							onClick={() => {
-								(async () => {
-									window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+                                        setHighPerfMode(false);
+                                    });
+                                })();
+                            }}
+                        >
+                            {__('Export all')}
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                // highPerfMode
+                                setHighPerfMode(!highPerfMode);
+                            }}
+                        >
+                            {__(highPerfMode ? 'Enable LUFS meters' : 'Disable LUFS meters')}
+                        </Button>
 
-									await new Promise((resolve) => {
-										requestAnimationFrame(() => {
-											resolve();
-										});
-									});
+                        <Button
+                            style={{
+                                // Spotify green
+                                // color: '#1DB954',
+                                // filter: 'brightness(1.5)',
+                                // Make color 50% brighter
+                                color: Color('#1DB954').lighten(0.5).toString(),
+                            }}
+                            onClick={() => {
+                                (async () => {
+                                    window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
 
-									[...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+                                    await new Promise((resolve) => {
+                                        requestAnimationFrame(() => {
+                                            resolve();
+                                        });
+                                    });
 
-									await new Promise((resolve) => {
-										requestAnimationFrame(() => {
-											resolve();
-										});
-									});
+                                    [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
 
-									[...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+                                    await new Promise((resolve) => {
+                                        requestAnimationFrame(() => {
+                                            resolve();
+                                        });
+                                    });
 
-									[...document.querySelectorAll('.hidden.button')].forEach(node => node.classList.remove('hidden'));
-								})();
-							}}
-						>
-							{__('Normalize all tracks')}
-						</Button>
+                                    [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
 
-						<Button
-							style={{
-								color: '#fff',
-								opacity: 0.5
-							}}
-							onClick={() => {
-								window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
-							}}
-						>
-							{__('Undo all volume changes (beta)')}
-						</Button>
+                                    [...document.querySelectorAll('.hidden.button')].forEach(node => node.classList.remove('hidden'));
+                                })();
+                            }}
+                        >
+                            {__('Normalize all tracks')}
+                        </Button>
 
-						{otherTools}
-					</>
-				) : null}
-			</div>
-			<div>
-				<Button
-					className="show-on-hover"
-					style={{
-						// Color is a golden dark yellow
-						color: '#f5d742',
-						opacity: 0.4
-					}}
-					onClick={() => {
-						// Give yes or no option with some more info
-						window.dispatchEvent(new CustomEvent('auto-gain'));
-					}}
-				>
-					{__('Equalize track volumes (Extremely beta) ✨')}
-				</Button>
-			</div >
-			<MixerContainer>
-				{tracks && tracks.map((track, index) => {
-					if (!track) {
-						return (
-							<PlaceholderMixerTrack key={index}>
-								<MixerTrackName text={__('Loading...')} />
-								<MixerTrackVolume>
-									<MixerTrackVolumeSlider />
-								</MixerTrackVolume>
-								<Button
-									size="small"
-								>
-									{__('Export')}
-								</Button>
-								<div>
-									<audio controls />
-								</div>
-							</PlaceholderMixerTrack>
-						);
-					}
-					return (
-						<MixerTrack
-							key={index}
-							//onMouseEnter={() => handlePlay(track)}
-							//onMouseLeave={() => handleStop(track)}
-							// Make focusable so that we can use the keyboard to play and stop
-							tabIndex={0}
-							className={activeTrackRef.current === track ? 'box active' : 'box'}
-							onFocus={() => {
-								if (activeTrackRef.current !== track) {
-									handlePlay(track);
-								}
-							}}
-							onDoubleClick={() => {
-								if (activeTrackRef.current === track) {
-									handleStop(track);
-								} else {
-									handlePlay(track);
-								}
-								// Blur actively focused element
-								document.activeElement.blur();
-							}}
-							onBlur={() => {
-								if (localStorage.getItem('keepFocus') === 'true') {
-									return;
-								}
-								if (activeTrackRef.current === track) {
-									handleStop(track);
-								}
-							}}
-						>
-							<MixerTrackName text={track.name} />
-							<MixerTrackVolume>
-								<MixerTrackVolumeSlider
-									file={track}
-									onChange={(volumeInDB) => {
-										// Set the gain node's gain value
-										// Basically if volumeInDB is 0, then the gain is 1 (no change)
-										// If volumeInDB is 5, then the gain is 10 (10x louder)
-										// If volumeInDB is -5, then the gain is 0.1 (10x quieter)          
-										track.gainNode.gain.value = translateVolume(volumeInDB);
+                        <Button
+                            style={{
+                                color: '#fff',
+                                opacity: 0.5
+                            }}
+                            onClick={() => {
+                                window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
+                            }}
+                        >
+                            {__('Undo all volume changes (beta)')}
+                        </Button>
 
-										// If you want to use a linear scale, then you can use this:
+                        {otherTools}
+                    </>
+                ) : null}
+            </div>
+            <div>
+                <Button
+                    className="show-on-hover"
+                    style={{
+                        // Color is a golden dark yellow
+                        color: '#f5d742',
+                        opacity: 0.4
+                    }}
+                    onClick={() => {
+                        // Give yes or no option with some more info
+                        window.dispatchEvent(new CustomEvent('auto-gain'));
+                    }}
+                >
+                    {__('Equalize track volumes (Extremely beta) ✨')}
+                </Button>
+            </div >
 
-										// const volumeInLinearScale = Math.pow(10, volumeInDB / 20);
-									}}
-									volumeDependantChildren={({ volumeInDB, setTrackGainModifiers }) => {
-										return (
-											!highPerfMode && (
-												<SpotifyAnalyser
-													track={track}
-													setTrackGainModifiers={setTrackGainModifiers}
-												/>
-											)
-										);
-									}}
-								>
-									{!highPerfMode && (
-										<MixerTrackAnalyzer
-											gainNode={track.gainNode}
-										/>
-									)}
-								</MixerTrackVolumeSlider>
+            <MixerContainer>
+                {tracks && tracks.map((track, index) => {
+                    if (!track) {
+                        return (
+                            <PlaceholderMixerTrack key={index}>
+                                <MixerTrackName text={__('Loading...')} />
+                                <MixerTrackVolume>
+                                    <MixerTrackVolumeSlider />
+                                </MixerTrackVolume>
+                                <Button
+                                    size="small"
+                                >
+                                    {__('Export')}
+                                </Button>
+                                <div>
+                                    <audio controls />
+                                </div>
+                            </PlaceholderMixerTrack>
+                        );
+                    }
+                    return (
+                        <MixerTrack
+                            key={index}
+                            //onMouseEnter={() => handlePlay(track)}
+                            //onMouseLeave={() => handleStop(track)}
+                            // Make focusable so that we can use the keyboard to play and stop
+                            tabIndex={0}
+                            className={activeTrackRef.current === track ? 'box active' : 'box'}
+                            onFocus={() => {
+                                if (activeTrackRef.current !== track) {
+                                    handlePlay(track);
+                                }
+                            }}
+                            onDoubleClick={() => {
+                                if (activeTrackRef.current === track) {
+                                    handleStop(track);
+                                } else {
+                                    handlePlay(track);
+                                }
+                                // Blur actively focused element
+                                document.activeElement.blur();
+                            }}
+                            onBlur={() => {
+                                if (localStorage.getItem('keepFocus') === 'true') {
+                                    return;
+                                }
+                                if (activeTrackRef.current === track) {
+                                    handleStop(track);
+                                }
+                            }}
+                        >
+                            <MixerTrackName text={track.name} />
+                            <MixerTrackVolume>
+                                <MixerTrackVolumeSlider
+                                    file={track}
+                                    onChange={(volumeInDB) => {
+                                        // Set the gain node's gain value
+                                        // Basically if volumeInDB is 0, then the gain is 1 (no change)
+                                        // If volumeInDB is 5, then the gain is 10 (10x louder)
+                                        // If volumeInDB is -5, then the gain is 0.1 (10x quieter)          
+                                        track.gainNode.gain.value = translateVolume(volumeInDB);
 
-								<Button
-									size="small"
-									onClick={() => {
-										// Export the audio buffer
-										const audioBuffer = track.audioData;
-										exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value);
-									}}
-								>
-									{__('Export')}
-								</Button>
+                                        // If you want to use a linear scale, then you can use this:
 
-								<DomInjector
-									key={index}
-									id={`audio-mixer-loudness-meter-${index}`}
-									inject={(el) => {
-										console.log('injecting', el);
-										el.appendChild(track.audio);
+                                        // const volumeInLinearScale = Math.pow(10, volumeInDB / 20);
+                                    }}
+                                    volumeDependantChildren={({ volumeInDB, setTrackGainModifiers }) => {
+                                        return (
+                                            !highPerfMode && (
+                                                <SpotifyAnalyser
+                                                    track={track}
+                                                    setTrackGainModifiers={setTrackGainModifiers}
+                                                />
+                                            )
+                                        );
+                                    }}
+                                >
+                                    {!highPerfMode && (
+                                        <MixerTrackAnalyzer
+                                            gainNode={track.gainNode}
+                                        />
+                                    )}
+                                </MixerTrackVolumeSlider>
 
-										// Play if not playing
-										if (track.audio.paused) {
-											track.audio.play();
-										}
+                                <Button
+                                    size="small"
+                                    onClick={() => {
+                                        // Export the audio buffer
+                                        const audioBuffer = track.audioData;
+                                        exportAudioBuffer(audioBuffer, track.name, track.gainNode.gain.value);
+                                    }}
+                                >
+                                    {__('Export')}
+                                </Button>
 
-										// On next mouse or touch event, unmute 
-										const unmute = () => {
-											track.audio.muted = false;
+                                <DomInjector
+                                    key={index}
+                                    id={`audio-mixer-loudness-meter-${index}`}
+                                    inject={(el) => {
+                                        console.log('injecting', el);
+                                        el.appendChild(track.audio);
 
-											document.removeEventListener('mousedown', unmute);
-											document.removeEventListener('touchstart', unmute);
-											document.removeEventListener('mousemove', unmute);
-										};
-										document.addEventListener('mousedown', unmute);
-										document.addEventListener('touchstart', unmute);
-										document.addEventListener('mousemove', unmute);
+                                        // Play if not playing
+                                        if (track.audio.paused) {
+                                            track.audio.play();
+                                        }
+
+                                        // On next mouse or touch event, unmute 
+                                        const unmute = () => {
+                                            track.audio.muted = false;
+
+                                            document.removeEventListener('mousedown', unmute);
+                                            document.removeEventListener('touchstart', unmute);
+                                            document.removeEventListener('mousemove', unmute);
+                                        };
+                                        document.addEventListener('mousedown', unmute);
+                                        document.addEventListener('touchstart', unmute);
+                                        document.addEventListener('mousemove', unmute);
 
 
-										return () => {
-											console.log('unmounting', el);
-											track.audio.remove();
-										}
-									}}
-								>
+                                        return () => {
+                                            console.log('unmounting', el);
+                                            track.audio.remove();
+                                        }
+                                    }}
+                                >
 
-								</DomInjector>
-							</MixerTrackVolume>
-						</MixerTrack>
-					);
-				})}
-			</MixerContainer>
-		</>
-	);
+                                </DomInjector>
+                            </MixerTrackVolume>
+                        </MixerTrack>
+                    );
+                })}
+            </MixerContainer>
+
+            <input type="range" value={zoomLevel} onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                console.log('value', value)
+                setZoomLevel(value);
+            }} min="0.45" max="2" step="0.25" style={{
+                marginTop: '60px',
+                cursor: 'ew-resize',
+            }} />
+        </>
+    );
 }
 
 export default AudioMixer;

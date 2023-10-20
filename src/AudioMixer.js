@@ -201,10 +201,10 @@ const MixerTrack = styled(({ className, children, ...props }) => {
     return (
         <motion.div
             // Make draggable
-            drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            dragMomentum={true}
-            dragElastic={0.4}
-            dragTransition={{ bounceStiffness: 1000, bounceDamping: 100 }}
+            //drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            //dragMomentum={true}
+            //dragElastic={0.4}
+            //dragTransition={{ bounceStiffness: 1000, bounceDamping: 100 }}
 
             className={'mixer-track ' + className}
             {...props}
@@ -398,34 +398,40 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
     useEffect(() => {
         // Listen for the highestGain event
         const listener = async (e) => {
-            window.dispatchEvent(
-                new CustomEvent('infoMessage', {
-                    detail: {
-                        id: 'betaMessage',
-                        date: moment().format('YYYY-MM-DD HH:mm:ss'),
-                        message: (
-                            <>
-                                <legend><strong>Things to consider:</strong></legend>
-                                <br />
-                                1. This (the <strong>'Equalize Track Volumes'</strong> feature) is an <strong>experimental feature</strong> and may not work as expected. <br />
-                                2. It will also <strong>remove any volume</strong> changes you have made manually on your tracks. <br />
-                                3. It will <strong>turn off spotify normalization</strong> for all tracks as well when it is done adjusting the volumes.
-                            </>
-                        )
-                    },
-                })
-            );
+            const date = moment().format('YYYY-MM');
+            if (window.localStorage.getItem('betaMessage') !== date) {
+                window.dispatchEvent(
+                    new CustomEvent('infoMessage', {
+                        detail: {
+                            id: 'betaMessage',
+                            date,
+                            onClose: () => {
+                                localStorage.setItem('betaMessage', date);
+                            },
+                            message: (
+                                <>
+                                    <legend><strong>Things to consider:</strong></legend>
+                                    <br />
+                                    1. This (the <strong>'Equalize Track Volumes'</strong> feature) is an <strong>experimental feature</strong> and may not work as expected. <br />
+                                    2. It will also <strong>remove any volume</strong> changes you have made manually on your tracks. <br />
+                                    3. It will <strong>turn off spotify normalization</strong> for all tracks as well when it is done adjusting the volumes.
+                                </>
+                            )
+                        },
+                    })
+                );
+            }
 
             // Reset counter
             // localStorage.setItem('gains-received-counted', 0);
 
             // Call the undo gain event and wait for it to finish
             window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
-            if (!document.querySelector('#root').className.includes('loading')) {
-                document.querySelector('#root').className += ' loading';
+            if (!document.querySelector('.App').className.includes('loading-beta')) {
+                document.querySelector('.App').className += ' loading-beta';
             }
-            if (!document.querySelector('.globe-loader').className.includes('loading')) {
-                document.querySelector('.globe-loader').className += ' loading';
+            if (!document.querySelector('.globe-loader').className.includes('loading-beta')) {
+                document.querySelector('.globe-loader').className += ' loading-beta';
             }
 
             await new Promise((resolve) => {
@@ -474,11 +480,11 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
                 console.log('gainDifference', gainDifference)
 
                 console.log('done loading normalizer...');
-                if (document.querySelector('#root').className.includes('loading')) {
-                    document.querySelector('#root').className = document.querySelector('#root').className.replace(' loading', '');
+                if (document.querySelector('.App').className.includes('loading-beta')) {
+                    document.querySelector('.App').className = document.querySelector('.App').className.replace(' loading-beta', '');
                 }
-                if (document.querySelector('.globe-loader').className.includes('loading')) {
-                    document.querySelector('.globe-loader').className = document.querySelector('.globe-loader').className.replace(' loading', '');
+                if (document.querySelector('.globe-loader').className.includes('loading-beta')) {
+                    document.querySelector('.globe-loader').className = document.querySelector('.globe-loader').className.replace(' loading-beta', '');
                 }
 
                 setVolumeInDB(gainDifference || 0);
@@ -634,6 +640,10 @@ let MixerTrackAnalyzer = ({ gainNode, ...props }) => {
             loudnessMeterRef.current = loudnessMeter;
             return () => {
                 loudnessMeter.stop();
+                loudnessMeterRef.current = null;
+                loudnessMeter = null;
+
+                // Reset values
                 setShortTerm(0);
                 setMomentary(0);
                 setIntegrated(0);
@@ -978,7 +988,9 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                         });
                                     });
 
-                                    [...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+                                    [...document.querySelectorAll('.spotify-normalization.active')].forEach((node, index) => {
+                                        node.click();
+                                    });
 
                                     await new Promise((resolve) => {
                                         requestAnimationFrame(() => {
@@ -986,7 +998,9 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                                         });
                                     });
 
-                                    [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach(node => node.click());
+                                    [...document.querySelectorAll('.spotify-normalization:not(.active)')].forEach((node, index) => {
+                                        node.click();
+                                    });
 
                                     [...document.querySelectorAll('.hidden.button')].forEach(node => node.classList.remove('hidden'));
                                 })();

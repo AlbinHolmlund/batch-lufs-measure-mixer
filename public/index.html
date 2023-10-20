@@ -107,7 +107,7 @@
       right: 0;
       bottom: 0;
       background-color: rgba(0, 0, 0, 0);
-      z-index: 99999900;
+      z-index: 10000000;
       align-items: center;
       justify-content: center;
       /* hide loader by default */
@@ -118,30 +118,31 @@
     }
 
     #root {
-      transition: opacity 0.3s ease-in-out;
+      transition: filter 0.3s ease-in-out;
     }
 
-    #root.loading {
+    #root.loading-beta {
       /* make root grayscale when loading */
       filter: grayscale(100%) !important;
     }
 
-    .globe-loader.loading {
+    .globe-loader.loading-beta {
+      pointer-events: all;
       animation: pulse 1.5s infinite;
       opacity: 1;
     }
 
     @keyframes pulse {
       0% {
-        background-color: rgba(0, 0, 0, 0.55);
+        background-color: rgba(0, 0, 0, 0.70);
       }
 
       50% {
-        background-color: rgba(0, 0, 0, 0.6);
+        background-color: rgba(0, 0, 0, 0.8);
       }
 
       100% {
-        background-color: rgba(0, 0, 0, 0.55);
+        background-color: rgba(0, 0, 0, 0.70);
       }
     }
   </style>

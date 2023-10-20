@@ -260,6 +260,7 @@ const InfoMessage = React.memo(({ children }) => {
               <Alert
                 severity="success"
                 onClose={() => {
+                  message.onClose && message.onClose();
                   setInfoMessages((messages) => {
                     return messages.filter((m) => m.id !== message.id);
                   });
@@ -378,17 +379,21 @@ const Download = () => {
     });
   }, []);
 
+  const buildVersion = (
+    <p style={{ opacity: 0.4 }}>Build version v{packageJson.version}</p>
+  );
+
   if (!data) {
     return (
       <DownloadContainer>
-        <p>Build version v{packageJson.version}</p>
+        {buildVersion}
       </DownloadContainer>
     );
   }
 
   return (
     <DownloadContainer>
-      <p>Build version v{packageJson.version}</p>
+      {buildVersion}
       <p>
         <a
           href={data.assets.find((asset) => asset.name.includes('exe')).browser_download_url}

@@ -5,25 +5,25 @@ import PQueue from 'p-queue';
 import { Context } from './Context';
 
 // We have a queue to make sure that there isn't like 30 audio contexts running at once, which would be bad and cause the browser to crash (on mobile especially)
-const queue = new PQueue({ concurrency: 2 });
+var queue = new PQueue({ concurrency: 2 });
 
-const arrayBufferToHash = async (buffer) => {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+var arrayBufferToHash = async (buffer) => {
+    var hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    var hashArray = Array.from(new Uint8Array(hashBuffer));
+    var hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
 }
 
 let activeLufs = null;
 
-const getLufs = async (track, arrayBuffer) => {
+var getLufs = async (track, arrayBuffer) => {
     if (activeLufs) {
         await activeLufs;
 
         activeLufs = null;
     }
 
-    const lufsPromise = new Promise(async (resolve, reject) => {
+    var lufsPromise = new Promise(async (resolve, reject) => {
         await queue.add(async () => {
             // Create a new audio context
             // Create a new offline context
@@ -32,20 +32,20 @@ const getLufs = async (track, arrayBuffer) => {
             // Decode the audio data with the gainNode applied
             let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
 
-            const gainOfflineCtx = new OfflineAudioContext(
+            var gainOfflineCtx = new OfflineAudioContext(
                 audioBuffer.numberOfChannels,
                 audioBuffer.duration * audioBuffer.sampleRate,
                 audioBuffer.sampleRate
             );
 
             // Create a new audio buffer source
-            const gainSource = gainOfflineCtx.createBufferSource();
+            var gainSource = gainOfflineCtx.createBufferSource();
 
             // Set the audio buffer to the source
             gainSource.buffer = audioBuffer;
 
             // Create a new gain node
-            const gainNode = gainOfflineCtx.createGain();
+            var gainNode = gainOfflineCtx.createGain();
             gainNode.gain.value = track.gainNode.gain.value;
 
             // Set the gain node to the source
@@ -90,7 +90,7 @@ const getLufs = async (track, arrayBuffer) => {
             // Start the loudness meter
             loudnessMeter.start();
 
-            const lufs = await new Promise((resolve, reject) => {
+            var lufs = await new Promise((resolve, reject) => {
                 loudnessMeter.on('dataavailable', function (event) {
                     // event.data.mode // momentary | short-term | integrated
                     // short-term means the last 3 seconds
@@ -98,6 +98,20 @@ const getLufs = async (track, arrayBuffer) => {
                     // event.data.value // -14
                     // console.log(event.data.mode, event.data.value)
                     if (event.data.mode === 'integrated') {
+                        // Cleanup
+                        if (loudnessMeter && loudnessMeter.stop && loudnessMeter.state !== 'inactive') {
+                            loudnessMeter.stop();
+                        }
+                        if (source.disconnect) source.disconnect();
+                        if (gainNode.disconnect) gainNode.disconnect();
+                        if (gainSource.disconnect) gainSource.disconnect();
+
+                        // Close the offline context
+                        if (offlineCtx.close) {
+                            offlineCtx.close();
+                            console.log('offlineCtx closed');
+                        }
+
                         console.log('lufs', event.data.value)
                         resolve(event.data.value);
                     }
@@ -122,8 +136,8 @@ const getLufs = async (track, arrayBuffer) => {
     return lufsPromise;
 }
 
-const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
-    const updateGain = (normalizationGain) => {
+var SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
+    var updateGain = (normalizationGain) => {
         if (track) {
             //  track.gainNode.gain.value += track.gainModifiers.reduce((a, b) => a + b, 0);
             setTrackGainModifiers((trackGainModifiers) => {
@@ -142,11 +156,11 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
         2. Use needles offline to get the LUFS
         3. Use the LUFS to set the gain
     */
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [lufs, setLufs] = useState(null);
-    const [gain, setGain] = useState(false);
-    const [forceGain, setForceGain] = useState(false);
+    var [loading, setLoading] = useState(false);
+    var [error, setError] = useState(null);
+    var [lufs, setLufs] = useState(null);
+    var [gain, setGain] = useState(false);
+    var [forceGain, setForceGain] = useState(false);
 
     useEffect(() => {
         if (track && forceGain) {
@@ -166,14 +180,14 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
 
                     // Use exportAudioBuffer to get the LUFS
                     // Arraybuffer with applied input gain (dbs in volume)
-                    const arrayBuffer = track.audioData;
+                    var arrayBuffer = track.audioData;
 
                     // Store in localStorage based on hash of blob
                     // Since the new arrayBuffer is directly dependant on the volume, we can bypass the need to store the arrayBuffer itself by storing the hash of the arrayBuffer and the volume
-                    const hash = await arrayBufferToHash(arrayBuffer) + track.gainNode.gain.value;
+                    var hash = await arrayBufferToHash(arrayBuffer) + track.gainNode.gain.value;
 
                     // Check if the hash exists in localStorage
-                    const lufs = localStorage.getItem('hash_lufs_' + hash);
+                    var lufs = localStorage.getItem('hash_lufs_' + hash);
                     if (0 && lufs) {
                         console.log('Obtaining LUFS for arrayBuffer from localStorage', arrayBuffer);
                         setLufs(lufs);
@@ -181,7 +195,7 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
 
                         if (updateGain) {
                             // Use lufs to calculate gain reduction for spotify (-14 LUFS)
-                            const gainReduction = -14 - lufs;
+                            var gainReduction = -14 - lufs;
 
                             // Update the gain
                             updateGain(gainReduction);
@@ -189,11 +203,11 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
                         return;
                     } else {
                         console.log('Obtaining LUFS for arrayBuffer', arrayBuffer);
-                        const lufs = await getLufs(track, arrayBuffer);
+                        var lufs = await getLufs(track, arrayBuffer);
 
                         // Use lufs to calculate gain reduction for spotify (-14 LUFS)
                         console.log('lufs', lufs);
-                        const gainReduction = -14 - lufs;
+                        var gainReduction = -14 - lufs;
 
                         setGain(parseFloat(gainReduction.toFixed(2)));
                         setLufs(parseFloat(lufs.toFixed(2)));
@@ -224,12 +238,12 @@ const SpotifyAnalyser = ({ track, setTrackGainModifiers, ...props }) => {
             window.tracks[track.index].gain = gain;
 
             // Unique
-            const uniqueGains = [...new Set(window.tracks.map((track) => track.gain).filter((gain) => gain))];
+            var uniqueGains = [...new Set(window.tracks.map((track) => track.gain).filter((gain) => gain))];
 
             console.log('uniqueGains', uniqueGains);
 
             // Get the gain with the lowest value
-            const highestGain = Math.max(...uniqueGains);
+            var highestGain = Math.max(...uniqueGains);
 
             console.log('uniqueGains', highestGain);
 

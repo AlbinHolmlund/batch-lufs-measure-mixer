@@ -31,3 +31,33 @@ input[type=range][orient=vertical] {
   height: 175px;
   padding: 0 5px;
 }
+
+.loading {
+  /* Animate the filter brightness property */
+  animation: loading 1s infinite alternate;
+}
+
+@keyframes loading {
+  0% {
+    filter: brightness(100%);
+    opacity: 1;
+  }
+
+  50% {
+    filter: brightness(50%);
+    opacity: 0.2;
+  }
+
+  100% {
+    filter: brightness(100%);
+    opacity: 1;
+  }
+}
+
+.show-on-hover {
+  transition: opacity 0.1s ease-in-out !important;
+}
+
+.show-on-hover:hover {
+  opacity: 1 !important;
+}

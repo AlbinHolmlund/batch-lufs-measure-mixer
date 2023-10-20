@@ -18,6 +18,8 @@ import useLocalStorageState from './useLocalStorageState';
 
 import SpotifyAnalyser from './SpotifyAnalyser';
 
+import moment from 'moment';
+
 const confirmation = (message) => {
 	// Trim tabs
 	message = message.replace(/\t/g, '');
@@ -324,6 +326,24 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
 	useEffect(() => {
 		// Listen for the highestGain event
 		const listener = async (e) => {
+			window.dispatchEvent(
+				new CustomEvent('infoMessage', {
+					detail: {
+						id: 'betaMessage',
+						date: moment().format('YYYY-MM-DD HH:mm:ss'),
+						message: (
+							<>
+								<legend><strong>Things to consider:</strong></legend>
+								<br />
+								1. This (the <strong>'Equalize Track Volumes'</strong> feature) is an <strong>experimental feature</strong> and may not work as expected. <br />
+								2. It will also <strong>remove any volume</strong> changes you have made manually on your tracks. <br />
+								3. It will <strong>turn off spotify normalization</strong> for all tracks as well when it is done adjusting the volumes.
+							</>
+						)
+					},
+				})
+			);
+
 			// Reset counter
 			// localStorage.setItem('gains-received-counted', 0);
 
@@ -377,6 +397,11 @@ const MixerTrackVolumeSlider = styled(({ file, className, onChange, children, vo
 
 				setVolumeInDB(gainDifference || 0);
 				setVolumeInDBTemp(gainDifference || 0);
+
+				// Click all normalization buttons again
+				setTimeout(() => {
+					[...document.querySelectorAll('.spotify-normalization.active')].forEach(node => node.click());
+				}, 1);
 			}, 1);
 		}
 		window.addEventListener('auto-gain', listener);
@@ -900,28 +925,18 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
 			</div>
 			<div>
 				<Button
+					className="show-on-hover"
 					style={{
 						// Color is a golden dark yellow
 						color: '#f5d742',
+						opacity: 0.4
 					}}
 					onClick={() => {
 						// Give yes or no option with some more info
-
-						if (!confirmation(__(`Are you sure you want to make all volumes even?
-						Things to consider:
-
-						1. This is an experimental feature and may not work as expected. 
-						
-						2. It will also remove any volume changes you have made manually on your tracks.
-						
-						3. It will turn off spotify normalization for all tracks as well.`))) {
-							return;
-						}
-						alert('Okay! Turning on spotify normalization on all tracks. Once it is finished, the volumes will be evened out.');
 						window.dispatchEvent(new CustomEvent('auto-gain'));
 					}}
 				>
-					{__('Equalize track volumes (Extremely beta but magical) ✨')}
+					{__('Equalize track volumes (Extremely beta) ✨')}
 				</Button>
 			</div >
 			<MixerContainer>

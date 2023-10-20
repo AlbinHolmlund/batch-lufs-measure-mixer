@@ -193,6 +193,10 @@ const InfoMessage = React.memo(({ children }) => {
   useEffect(() => {
     window.addEventListener('infoMessage', (e) => {
       setInfoMessages((messages) => {
+        // If its unique by id
+        if (messages.find((m) => m.id === e.detail.id)) {
+          return messages;
+        }
         return [...messages, e.detail];
       });
     });

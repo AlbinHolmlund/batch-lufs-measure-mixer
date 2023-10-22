@@ -980,13 +980,7 @@ const AudioMixer = ({ files, audioContext, otherTools }) => {
                             }}
                             onClick={() => {
                                 (async () => {
-                                    window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
-
-                                    await new Promise((resolve) => {
-                                        requestAnimationFrame(() => {
-                                            resolve();
-                                        });
-                                    });
+                                    // window.dispatchEvent(new CustomEvent('audio-mixer-undo-all-gains'));
 
                                     [...document.querySelectorAll('.spotify-normalization.active')].forEach((node, index) => {
                                         node.click();
